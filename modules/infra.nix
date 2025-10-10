@@ -79,5 +79,5 @@ in
   # TODO: assert ids unique
   # TODO: assert wireguard IPs unqiue and wireguard pubkeys unique
   # TODO: assert unique domains per webserver
-
+  # TODO: assert that admin.username is not root (as root login is disabled)
 }

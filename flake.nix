@@ -70,6 +70,15 @@
 
       formatter = forAllSystems ({ system, ... }: nixpkgs.legacyPackages.${system}.nixfmt-tree);
 
+      templates = {
+        basic = {
+          path = ./templates/basic;
+          description = "A basic template that is a good starting point for setting up your own peer-observer infrastructure.";
+        };
+
+        default = self.templates.basic;
+      };
+
       checks = forAllSystems (
         { pkgs, system, ... }:
         {
