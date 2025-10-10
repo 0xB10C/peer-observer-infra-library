@@ -1,0 +1,48 @@
+
+name: flake template check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  template-check:
+    name: init default template and check it
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install magic nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Show Nix version
+        run: nix --version
+
+      - name: Show available templates
+        run: nix flake show templates
+
+      - name: Build host VMs for template nixosConfigurations
+        run: |
+          FLAKE_DIR=$(pwd)
+
+          DIR=$(mktemp -d)
+          cd $DIR
+          
+          nix flake init --template path:$FLAKE_DIR/#basic
+
+          git init
+          git add .
+
+          hosts=($(nix flake show --json | jq -r '.nixosConfigurations | keys[]'))
+          for host in "${hosts[@]}"
+          do
+            nix develop --command bash -c "build-vm $host"    
+          done
