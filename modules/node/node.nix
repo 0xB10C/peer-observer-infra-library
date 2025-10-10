@@ -130,7 +130,14 @@ in
     # TODO: fix peer-observer metrics to not grow on RAM too much.
     # systemd.services."peer-observer-tool-metrics".serviceConfig.RuntimeMaxSec = "48h";
 
-    # for backwards compatability reasons, this is called "mainnet" and has to stay this way for now..
+    # To be sure to notice a crashed Bitcoin node, we configure the NixOS systemd service to
+    # NOT restart the node. This must be done manually (either systemctl restart bitcoind-mainnet
+    # or restarting the whole host). Calling the "stop" RPC also causes the node to be NOT restarted.
+    # See https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Restart=
+    systemd.services.bitcoind-mainnet.serviceConfig.Restart = lib.mkForce "no";
+
+    # for backwards compatability reasons, this is called "mainnet" and has to stay this way for now.
+    # Even if we run a signet/testnet/regtest node..
     services.bitcoind."mainnet" = {
       enable = true;
       package = config.peer-observer.node.bitcoind.package;
