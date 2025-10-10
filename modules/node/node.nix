@@ -398,7 +398,7 @@ in
       script = ''
         mkdir -p ${CONSTANTS.DEBUG_LOGS_DIR}
         chown ${config.services.bitcoind.mainnet.user}:${config.services.bitcoind.mainnet.group} ${CONSTANTS.DEBUG_LOGS_DIR}
-        chmod -R 665 ${CONSTANTS.DEBUG_LOGS_DIR}
+        chmod -R 775 ${CONSTANTS.DEBUG_LOGS_DIR}
       '';
       serviceConfig.Type = "oneshot";
     };
