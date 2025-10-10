@@ -1,0 +1,46 @@
+
+name: Deploy module docs to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  docs:
+    name: Generate and deploy docs 
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install magic nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Show Nix version
+        run: nix --version
+
+      - name: Build docs
+        run: nix build .#docs --print-build-logs --show-trace
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: 'result/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
