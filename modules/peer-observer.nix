@@ -33,6 +33,11 @@ in
   };
 
   config = {
-    # TODO: assert that it's either a node or web
+    assertions = [
+      {
+        assertion = config.peer-observer.web.enable != config.peer-observer.node.enable;
+        message = "It must either be a node OR a webserver. Currently, `config.peer-observer.node.enable == config.peer-observer.web.enable`.";
+      }
+    ];
   };
 }
