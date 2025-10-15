@@ -112,10 +112,10 @@ in
           assertion = checkUniqueBy (x: x.wireguard.pubkey) (config.infra.nodes // config.infra.webservers);
           message = "The `infra.<nodes/webservers>.<name>.wireguard.pubkey`'s are not unique.";
         }
+        {
+          assertion = config.infra.global.admin.username != "root";
+          message = "The `infra.global.admin.username` CAN NOT be 'root' as root login is disabled.";
+        }
       ];
     };
-
-  # TODO: assert that host names unique
-  # TODO: assert unique domains per webserver
-  # TODO: assert that admin.username is not root (as root login is disabled)
 }
