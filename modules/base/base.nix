@@ -136,6 +136,12 @@ in
           ];
         };
       };
+
+      # Clean the files in `/tmp` during boot.
+      boot.tmp.cleanOnBoot = true;
+      # Compressed tmp files and SWAP.
+      # See https://www.kernel.org/doc/Documentation/blockdev/zram.txt
+      zramSwap.enable = true;
     }
 
     (lib.mkIf (!config.peer-observer.base.setup) {
