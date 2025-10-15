@@ -64,8 +64,8 @@ pkgs.testers.runNixOSTest {
     command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}"
     output = web1.succeed(command)
     print(f"{command}: {output}")
-    assert_log("${infraConfig.nodes.node1.description}", output)
-    assert_log("${infraConfig.nodes.node2.description}", output)
+    assert_log("""${infraConfig.nodes.node1.description}""", output)
+    assert_log("""${infraConfig.nodes.node2.description}""", output)
 
     # without trailing slash
     command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman"
@@ -161,12 +161,12 @@ pkgs.testers.runNixOSTest {
     command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_PORT}/forks/api/networks.json"
     output = web1.succeed(command)
     print(f"{command}: {output}")
-    assert_log('{"networks":[{"id":1,"name":"regtest","description":"fork-observer attached to peer-observer nodes"}]}', output)
+    assert_log('{"networks":[{"id":1,"name":"regtest","description":"  fork-observer attached to peer-observer nodes"}]}', output)
     command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_PORT}/forks/api/1/data.json"
     output = web1.succeed(command)
     print(f"{command}: {output}")
-    assert_log("${infraConfig.nodes.node1.description}", output)
-    assert_log("${infraConfig.nodes.node2.description}", output)
+    assert_log("0fc83a94-3eee-44c2-87b4-441638dd75ac", output)
+    assert_log("09b318bd-fb84-48b3-9984-5f60ebddf864", output)
     assert_log('"status":"active","height":500', output)
 
     # TODO: test addrLookup
