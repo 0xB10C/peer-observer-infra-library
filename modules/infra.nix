@@ -104,10 +104,17 @@ in
           assertion = checkUniqueBy (x: x.id) config.infra.webservers;
           message = "The `id`'s of the `infra.webservers` are not unique.";
         }
+        {
+          assertion = checkUniqueBy (x: x.wireguard.ip) (config.infra.nodes // config.infra.webservers);
+          message = "The `infra.<nodes/webservers>.<name>.wireguard.ip`'s are not unique.";
+        }
+        {
+          assertion = checkUniqueBy (x: x.wireguard.pubkey) (config.infra.nodes // config.infra.webservers);
+          message = "The `infra.<nodes/webservers>.<name>.wireguard.pubkey`'s are not unique.";
+        }
       ];
     };
 
-  # TODO: assert wireguard IPs unqiue and wireguard pubkeys unique
   # TODO: assert that host names unique
   # TODO: assert unique domains per webserver
   # TODO: assert that admin.username is not root (as root login is disabled)
