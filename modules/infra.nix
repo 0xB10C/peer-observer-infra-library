@@ -76,8 +76,39 @@ in
     };
   };
 
-  # TODO: assert ids unique
+  config =
+    let
+      checkUniqueBy =
+        keyFn: attrset:
+        let
+          values = builtins.attrValues attrset;
+          keys = map keyFn values;
+          uniqueKeys = builtins.attrNames (
+            builtins.listToAttrs (
+              map (k: {
+                name = toString k;
+                value = true;
+              }) keys
+            )
+          );
+        in
+        builtins.length keys == builtins.length uniqueKeys;
+    in
+    {
+      assertions = [
+        {
+          assertion = checkUniqueBy (x: x.id) config.infra.nodes;
+          message = "The `id`'s of the `infra.nodes` are not unique.";
+        }
+        {
+          assertion = checkUniqueBy (x: x.id) config.infra.webservers;
+          message = "The `id`'s of the `infra.webservers` are not unique.";
+        }
+      ];
+    };
+
   # TODO: assert wireguard IPs unqiue and wireguard pubkeys unique
+  # TODO: assert that host names unique
   # TODO: assert unique domains per webserver
   # TODO: assert that admin.username is not root (as root login is disabled)
 }
