@@ -34,7 +34,10 @@ in
       id = 1;
       setup = false;
       arch = system;
-      description = "This is the test-node1. An unique value to look for in the integration tests is: 0fc83a94-3eee-44c2-87b4-441638dd75ac";
+      description = ''
+        This is the test-node1.
+        An unique value to look for in the integration tests is: 0fc83a94-3eee-44c2-87b4-441638dd75ac";
+      '';
 
       wireguard = {
         ip = "10.0.0.1";
