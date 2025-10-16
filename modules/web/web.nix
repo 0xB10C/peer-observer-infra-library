@@ -128,10 +128,15 @@ in
     };
 
     index = {
-      notice = lib.mkOption {
+      limitedAccessNotice = lib.mkOption {
         type = lib.types.str;
         default = "";
-        description = "A notice to include at the top of the index.html page. Can contain HTML (styled with bootstrap).";
+        description = "A notice to include at the top of the index.html page for LIMITED_ACCESS. Can contain HTML (styled with bootstrap).";
+      };
+      fullAccessNotice = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "A notice to include at the top of the index.html page for FULL_ACCESS. Can contain HTML (styled with bootstrap).";
       };
     };
 
