@@ -105,6 +105,10 @@ in
         networkName = "regtest";
         minForkHeight = 0;
       };
+      index = {
+        fullAccessNotice = "fullAccessNotice";
+        limitedAccessNotice = "limitedAccessNotice";
+      };
       extraModules = [ ];
       extraConfig = {
         # we can't get an ACME cert in the test: disable TLS on nginx

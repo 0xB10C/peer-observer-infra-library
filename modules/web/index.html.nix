@@ -188,7 +188,12 @@ stdenv.mkDerivation rec {
         ${
           (mkHTMLPage "peer-observer" (
             # include a user configurable notice on the top of the page
-            config.peer-observer.web.index.notice
+            (
+              if limited then
+                config.peer-observer.web.index.limitedAccessNotice
+              else
+                config.peer-observer.web.index.fullAccessNotice
+            )
             + ''
               <h2>Nodes</h2>
             ''

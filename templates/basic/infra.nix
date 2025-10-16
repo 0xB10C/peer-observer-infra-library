@@ -216,12 +216,16 @@ in
         access_DANGER = "LIMITED_ACCESS";
 
         # A notice shown on the index page.
-        index.notice = ''
-          <div class="alert alert-info" role="alert">
-            <h2>Placeholder</h2>
-            This is a placeholder notice for web01.
-          </div>
-        '';
+        index = {
+          # FIXME:
+          limitedAccessNotice = ''
+            <div class="alert alert-info" role="alert">
+              <h2>Placeholder</h2>
+              This is a placeholder notice for web01.
+            </div>
+          '';
+          # if you choose "FULL_ACCESS" above, you can also set "fullAccessNotice"
+        };
 
         extraConfig = {
           # For a Let's Encrypt ACME certificate, we would need to accept the terms.
