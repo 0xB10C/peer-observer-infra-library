@@ -1,4 +1,3 @@
-
 name: flake template check
 
 on:
@@ -26,17 +25,19 @@ jobs:
       - name: Show Nix version
         run: nix --version
 
-      - name: Show available templates
-        run: nix flake show templates
-
       - name: Build host VMs for template nixosConfigurations
         run: |
           FLAKE_DIR=$(pwd)
 
           DIR=$(mktemp -d)
           cd $DIR
-          
+
           nix flake init --template path:$FLAKE_DIR/#basic
+
+          # echo use the local flake, otherwise we'll test against the master-branch flake in PRs
+          head flake.nix
+          sed -i -e 's@github:0xB10C/peer-observer-infra-library@path://"$FLAKE_DIR"@g' flake.nix
+          head flake.nix
 
           git init
           git add .
@@ -44,5 +45,5 @@ jobs:
           hosts=($(nix flake show --json | jq -r '.nixosConfigurations | keys[]'))
           for host in "${hosts[@]}"
           do
-            nix develop --command bash -c "build-vm $host"    
+            nix develop --command bash -c "build-vm $host"
           done
