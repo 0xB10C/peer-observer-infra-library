@@ -31,9 +31,9 @@ let
     ++ extraModules;
 
   mkSystem =
-    config: extraModules:
+    config: extraModules: arch:
     nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
+      system = arch;
       modules = (mkModules extraModules) ++ [ config ];
     };
 
@@ -106,10 +106,10 @@ in
     infraConfig:
     let
       nodeConfigs = lib.mapAttrs (
-        name: node: mkSystem (mkNodeConfig name node infraConfig) node.extraModules
+        name: node: mkSystem (mkNodeConfig name node infraConfig) node.extraModules node.arch
       ) infraConfig.nodes;
       webserverConfigs = lib.mapAttrs (
-        name: web: mkSystem (mkWebConfig name web infraConfig) web.extraModules
+        name: web: mkSystem (mkWebConfig name web infraConfig) web.extraModules web.arch
       ) infraConfig.webservers;
     in
     nodeConfigs // webserverConfigs;
