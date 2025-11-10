@@ -1,0 +1,31 @@
+name: update b10c-nix flake input
+on:
+  workflow_dispatch:
+  schedule:
+    # runs daily at 03:30 UTC
+    - cron: "30 3 * * *"
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Update flake.lock
+        id: update
+        uses: DeterminateSystems/update-flake-lock@main
+        with:
+          pr-title: "auto update b10c-nix"
+          inputs: b10c-nix
+
+      - name: Print PR number
+        run: echo Pull request number is ${{ steps.update.outputs.pull-request-number }}.
