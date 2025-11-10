@@ -3,6 +3,10 @@ name: flake template check
 on:
   push:
     branches: [master]
+  # To be able to trigger a rebuild manually by (un)assigning someone
+  # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request
+  pull_request:
+    types: [opened, reopened, synchronize, assigned, unassigned]
   pull_request:
 
 jobs:
