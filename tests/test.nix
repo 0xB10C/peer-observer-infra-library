@@ -144,6 +144,9 @@ pkgs.testers.runNixOSTest {
     web1.wait_for_unit("grafana.service")
     web1.wait_for_unit("prometheus.service")
 
+    # Give the metrics tool a few seconds to start up
+    time.sleep(4)
+
     print("check peer-observer-metrics-tool metrics")
     # fetching node2 here since it has an inbound connection from node1
     command = "curl ${infraConfig.nodes.node2.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT}"
