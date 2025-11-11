@@ -116,6 +116,14 @@ pkgs.testers.runNixOSTest {
     } add"
     node1.succeed(command)
 
+    print("wait until the two nodes are connected")
+    command = bitcoin_cli + " getpeerinfo | jq 'select(. | length >= 1) // error(\"Array length is not >= 1\")'"
+    node2.wait_until_succeeds(command, 70)
+
+    command = bitcoin_cli + " getpeerinfo | jq '. | length'"
+    peers = node2.succeed(command)
+    print(f"node2 has {peers} peer(s)")
+
     print("mine a few blocks on node2")
     command = bitcoin_cli + " generatetoaddress 500 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
     node2.succeed(command)
