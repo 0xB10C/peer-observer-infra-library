@@ -7,7 +7,6 @@ on:
   # https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request
   pull_request:
     types: [opened, reopened, synchronize, assigned, unassigned]
-  pull_request:
 
 jobs:
   template-check:
