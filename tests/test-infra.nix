@@ -58,6 +58,7 @@ in
         detailedLogging = {
           enable = true;
           logsToKeep = 2;
+          printToConsole = true; # useful for debugging
         };
         banlistScript = ''
           bitcoin-cli setban 162.218.65.0/24    add 31536000  # LinkingLion
@@ -82,7 +83,12 @@ in
         ip = "10.0.0.2";
         pubkey = "n2/QUr6X+/6Ii+ExwBXEPAnJLjnrZI5E/npMLFztkGI=";
       };
-      bitcoind.chain = "regtest";
+      bitcoind = {
+        chain = "regtest";
+        detailedLogging = {
+          printToConsole = true; # useful for debugging
+        };
+      };
       extraConfig = (testOnlySSHHostKeyExtraConfig "node2") // {
         # extra memory needed for peer-observer extractor huge-msg table
         virtualisation.memorySize = 3072;
