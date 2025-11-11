@@ -125,7 +125,7 @@ pkgs.testers.runNixOSTest {
     print(f"node2 has {peers} peer(s)")
 
     print("mine a few blocks on node2")
-    command = bitcoin_cli + " generatetoaddress 500 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
+    command = bitcoin_cli + " generatetoaddress 20 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
     node2.succeed(command)
 
     # give nodes a bit of time to sync
@@ -157,7 +157,7 @@ pkgs.testers.runNixOSTest {
     assert_log("peerobserver_runtime_start_timestamp 0", output, negated=True)
 
     print("check that the ebpf-extractor works..")
-    assert_log("peerobserver_validation_block_connected_latest_height 500", output)
+    assert_log("peerobserver_validation_block_connected_latest_height 20", output)
 
     print("check that the rpc-extractor works..")
     assert_log("peerobserver_rpc_mempoolinfo_memory_max 300000000", output)
@@ -178,7 +178,7 @@ pkgs.testers.runNixOSTest {
     print(f"{command}: {output}")
     assert_log("0fc83a94-3eee-44c2-87b4-441638dd75ac", output)
     assert_log("09b318bd-fb84-48b3-9984-5f60ebddf864", output)
-    assert_log('"status":"active","height":500', output)
+    assert_log('"status":"active","height":20', output)
 
     # TODO: test addrLookup
     # TODO: test logrotate (logrotate currently might only work on mainnet..)
