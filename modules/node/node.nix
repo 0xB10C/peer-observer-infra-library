@@ -93,6 +93,7 @@ in
           default = 4;
           example = 2;
         };
+        printToConsole = lib.mkEnableOption "Wether to print the debug logs to console (i.e. systemd) too. Disabled by default, but can be useful for testing.";
       };
     };
 
@@ -226,7 +227,9 @@ in
         ''}
         ${optionalString config.peer-observer.node.bitcoind.detailedLogging.enable ''
           ${lib.concatStrings (map (cat: "debug=${cat}\n") CONSTANTS.DETAILED_DEBUG_LOG_CATEGORIES)}
-          printtoconsole=0
+          printtoconsole=${
+            if config.peer-observer.node.bitcoind.detailedLogging.printToConsole then "1" else "0"
+          }
         ''}
       ''
       + config.peer-observer.node.bitcoind.extraConfig;
