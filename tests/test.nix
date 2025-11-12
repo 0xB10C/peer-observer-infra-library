@@ -112,12 +112,6 @@ pkgs.testers.runNixOSTest {
 
     bitcoin_cli = "${pkgs.bitcoind}/bin/bitcoin-cli -rpcport=${toString CONSTANTS.BITCOIND_RPC_PORT} -datadir=/var/lib/bitcoind-mainnet/regtest"
 
-    print("connect bitcoind's: node1 to node2")
-    command = bitcoin_cli + " addnode node2:${
-      toString CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${infraConfig.nodes.node1.bitcoind.chain}"
-    } add"
-    node1.succeed(command)
-
     print("wait until the two nodes are connected")
     command = bitcoin_cli + " getpeerinfo | jq 'select(. | length >= 1) // error(\"Array length is not >= 1\")'"
     node2.wait_until_succeeds(command, 70)
