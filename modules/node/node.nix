@@ -331,7 +331,7 @@ in
         };
         p2p = {
           enable = true;
-          p2pAddress = "127.0.0.1:28213";
+          p2pAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_PORT}";
           network =
             CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_NETWORK_NAME_MAP."${config.peer-observer.node.bitcoind.chain
             }";
