@@ -66,6 +66,9 @@ in
           bitcoin-cli setban 91.198.115.0/24    add 31536000  # LinkingLion
           bitcoin-cli setban 2604:d500:4:1::/64 add 31536000  # LinkingLion
         '';
+        extraConfig = ''
+          addnode=node2:18444
+        '';
       };
 
       extraConfig = (testOnlySSHHostKeyExtraConfig "node1") // {
@@ -88,6 +91,9 @@ in
         detailedLogging = {
           printToConsole = true; # useful for debugging
         };
+        extraConfig = ''
+          addnode=node1:18444
+        '';
       };
       extraConfig = (testOnlySSHHostKeyExtraConfig "node2") // {
         # extra memory needed for peer-observer extractor huge-msg table
