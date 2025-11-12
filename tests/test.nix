@@ -91,7 +91,9 @@ pkgs.testers.runNixOSTest {
     }, addr="node1");
 
     node1.wait_for_unit("nats.service")
+    node1.wait_for_open_port(4222)
     node2.wait_for_unit("nats.service")
+    node2.wait_for_open_port(4222)
 
     node1.wait_for_unit("peer-observer-ebpf-extractor.service")
     node2.wait_for_unit("peer-observer-ebpf-extractor.service")
