@@ -53,6 +53,13 @@ in
         description = "The chain / network the node should run.";
       };
 
+      customPort = lib.mkOption {
+        type = types.nullOr types.port;
+        default = null;
+        description = "A custom port the Bitcoin node should use for the P2P network. If unset, the default port is used.";
+        example = 12345;
+      };
+
       extraConfig = lib.mkOption {
         type = lib.types.str;
         default = "";
@@ -154,7 +161,14 @@ in
         chain=${config.peer-observer.node.bitcoind.chain}
         [${config.peer-observer.node.bitcoind.chain}]
 
-        port=${toString CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${config.peer-observer.node.bitcoind.chain}"}
+        port=${
+          toString (
+            if config.peer-observer.node.bitcoind.customPort != null then
+              config.peer-observer.node.bitcoind.customPort
+            else
+              CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${config.peer-observer.node.bitcoind.chain}"
+          )
+        }
 
         # disabled, as it has gotten quite spammy in
         # https://github.com/bitcoin/bitcoin/pull/32604/commits/d541409a64c60d127ff912dad9dea949d45dbd8c
@@ -252,9 +266,13 @@ in
         }) (lib.attrValues (lib.attrsets.filterAttrs (name: host: !host.setup) config.infra.webservers));
       };
       firewall = {
-        # on node hosts, open the Bitcoin node port to the public internet
         allowedTCPPorts = [
-          CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${config.peer-observer.node.bitcoind.chain}"
+          (
+            if config.peer-observer.node.bitcoind.customPort != null then
+              config.peer-observer.node.bitcoind.customPort
+            else
+              CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${config.peer-observer.node.bitcoind.chain}"
+          )
         ];
         interfaces.${CONSTANTS.WIREGUARD_INTERFACE_NAME}.allowedTCPPorts = [
           # on node hosts:
