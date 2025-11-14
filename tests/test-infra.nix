@@ -67,7 +67,7 @@ in
           bitcoin-cli setban 2604:d500:4:1::/64 add 31536000  # LinkingLion
         '';
         extraConfig = ''
-          addnode=node2:18444
+          addnode=node2:12345
         '';
       };
 
@@ -88,6 +88,7 @@ in
       };
       bitcoind = {
         chain = "regtest";
+        customPort = 12345;
         detailedLogging = {
           printToConsole = true; # useful for debugging
         };

@@ -83,12 +83,10 @@ pkgs.testers.runNixOSTest {
     node2.wait_for_unit("bitcoind-mainnet.service")
 
     print("from node1, check if node2's Bitcoin node port is reachable and vice-versa")
-    node1.wait_for_open_port(${
-      toString CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${infraConfig.nodes.node2.bitcoind.chain}"
-    }, addr="node2");
+    node1.wait_for_open_port(${toString infraConfig.nodes.node2.bitcoind.customPort}, addr="node2", timeout=60);
     node2.wait_for_open_port(${
       toString CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${infraConfig.nodes.node1.bitcoind.chain}"
-    }, addr="node1");
+    }, addr="node1", timeout=60);
 
     node1.wait_for_unit("nats.service")
     node1.wait_for_open_port(4222)
