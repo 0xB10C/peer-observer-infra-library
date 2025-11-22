@@ -20,9 +20,8 @@
   fakeVersionMinor ? null,
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
-  gitBranch ? "30.x",
-  # v30.0 release
-  gitCommit ? "d0f6d9953a15d7c7111d46dcb76ab2bb18e5dee3",
+  gitBranch ? "master",
+  gitCommit ? "0690514d4f72aac251ee0b876cded9187d42c63e", # master at 2025-11-22
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
 }:
