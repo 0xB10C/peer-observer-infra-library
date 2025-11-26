@@ -6,26 +6,30 @@ on:
     - cron: "30 3 * * *"
 
 jobs:
-  lockfile:
-    runs-on: ubuntu-latest
+  update-flake-inputs:
+    runs-on: ubuntu-slim
     permissions:
       contents: write
-      id-token: write
-      issues: write
       pull-requests: write
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Install nix
-        uses: DeterminateSystems/nix-installer-action@main
-
-      - name: Update flake.lock
-        id: update
-        uses: DeterminateSystems/update-flake-lock@main
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v1
         with:
-          pr-title: "auto update b10c-nix"
-          inputs: b10c-nix
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Print PR number
-        run: echo Pull request number is ${{ steps.update.outputs.pull-request-number }}.
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Update flake inputs
+        uses: mic92/update-flake-inputs@main
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          exclude-patterns: 'flake.nix#agenix'
