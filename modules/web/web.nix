@@ -396,7 +396,6 @@ in
 
     services.grafana-image-renderer = {
       enable = true;
-      verbose = true;
       # We manually provision the grafana side.
       # (see "rendering" below)
       provisionGrafana = false;

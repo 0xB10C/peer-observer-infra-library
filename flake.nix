@@ -2,7 +2,7 @@
   description = "A NixOS flake providing library functionality for running peer-observer instances.";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-25.11";
     b10c-nix = {
       url = "github:0xb10c/nix";
       inputs.nixpkgs.follows = "nixpkgs";
