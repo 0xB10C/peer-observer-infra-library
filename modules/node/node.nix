@@ -334,15 +334,14 @@ in
       natsAddress = "127.0.0.1:${toString NATS_PORT}";
 
       extractors = {
+        dependOn = "bitcoind-mainnet";
         ebpf = {
           enable = true;
-          dependsOn = "bitcoind-mainnet";
           bitcoindPIDFile = config.services.bitcoind.mainnet.pidFile;
           bitcoindPath = "${config.services.bitcoind.mainnet.package}/bin/bitcoind";
         };
         rpc = {
           enable = true;
-          dependsOn = "bitcoind-mainnet";
           rpcHost = "127.0.0.1:${toString config.services.bitcoind.mainnet.rpc.port}";
           rpcUser = "rpc-extractor";
           rpcPass = CONSTANTS.RPC_EXTRACTOR_RPC_PASSWORD;
@@ -353,6 +352,10 @@ in
           network =
             CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_NETWORK_NAME_MAP."${config.peer-observer.node.bitcoind.chain
             }";
+        };
+        log = {
+          enable = true;
+          debugLog = "/var/lib/bitcoind-mainnet/debug.log";
         };
       };
 
