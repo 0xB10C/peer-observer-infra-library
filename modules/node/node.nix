@@ -354,7 +354,7 @@ in
             }";
         };
         log = {
-          enable = true;
+          enable = false;
           debugLog = "/var/lib/bitcoind-mainnet/debug.log";
         };
       };
