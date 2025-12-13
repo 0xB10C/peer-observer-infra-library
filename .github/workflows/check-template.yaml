@@ -16,6 +16,15 @@ jobs:
       contents: read
       id-token: write
     steps:
+
+      - run: df -h
+      - name: free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo docker builder prune -a
+      - run: df -h
+
       - name: Checkout repository
         uses: actions/checkout@v5
 
@@ -50,3 +59,4 @@ jobs:
           do
             nix develop --command bash -c "build-vm $host"
           done
+      - run: df -h
