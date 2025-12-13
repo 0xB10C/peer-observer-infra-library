@@ -28,6 +28,14 @@ jobs:
       - name: Show Nix version
         run: nix --version
 
+      - run: df -h
+      - name: free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          sudo docker builder prune -a
+      - run: df -h
+
       - name: Run nix flake check
         run: nix flake check --print-build-logs --show-trace
 

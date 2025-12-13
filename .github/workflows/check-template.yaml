@@ -50,3 +50,4 @@ jobs:
           do
             nix develop --command bash -c "build-vm $host"
           done
+      - run: df -h
