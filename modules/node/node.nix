@@ -331,8 +331,6 @@ in
     };
 
     services.peer-observer = {
-      natsAddress = "127.0.0.1:${toString NATS_PORT}";
-
       extractors = {
         dependOn = "bitcoind-mainnet";
         ebpf = {
