@@ -1,8 +1,21 @@
 {
+  # The port the node opens in the wireguard tunnel for the webserver to fetch
+  # metrics, Bitcoin Core RPC, debug logs, and more from.
+  NODE_TO_WEBSERVER_PORT = 9000;
+
+  # Paths on the node's nginx where the proxied endpoint can be found.
+  NODE_TO_WEBSERVER_PATH_BITCOIND_RPC = "/"; # RPC needs to be / ...
+  NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs";
+  NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL = "/peer-observer-metrics-tool/";
+  NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL = "/peer-observer-websocket-tool/";
+  NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL = "/peer-observer-addressconnectivty-tool/";
+  NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE = "/prometheus-exporter-node/";
+  NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD = "/prometheus-exporter-wireguard/";
+  NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS = "/prometheus-exporter-process/";
+
   PEER_OBSERVER_TOOL_METRICS_PORT = 8282;
-  PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT = 18282;
-  PEER_OBSERVER_TOOL_WEBSOCKET_PORT = 8284;
   PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT = 8283;
+  PEER_OBSERVER_TOOL_WEBSOCKET_PORT = 8284;
 
   PEER_OBSERVER_EXTRACTOR_P2P_PORT = 28213;
 

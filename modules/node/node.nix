@@ -215,18 +215,6 @@ in
           rpcwhitelist=addrmanobserver:getrawaddrman
           rpcauth=addrmanobserver:${CONSTANTS.ADDRMAN_OBSERVER_RPC_AUTH}
         ''}
-        ${optionalString
-          (
-            config.peer-observer.node.fork-observer.enable || config.peer-observer.node.addrman-observer.enable
-          )
-          ''
-            rpcbind=${config.peer-observer.base.wireguard.ip}
-            # allow rpc connections from web hosts
-            ${builtins.concatStringsSep "\n" (
-              map (host: "rpcallowip=" + host.wireguard.ip) (lib.attrValues config.infra.webservers)
-            )}
-          ''
-        }
         ${optionalString config.peer-observer.node.bitcoind.net.useTor "debug=tor"}
         ${optionalString config.peer-observer.node.bitcoind.net.useI2P ''
           debug=i2p
@@ -275,22 +263,8 @@ in
           )
         ];
         interfaces.${CONSTANTS.WIREGUARD_INTERFACE_NAME}.allowedTCPPorts = [
-          # on node hosts:
-          # - open the prometheus exporter ports to the wireguard interface
-          config.services.prometheus.exporters.node.port
-          config.services.prometheus.exporters.wireguard.port
-          config.services.prometheus.exporters.process.port
-          # - open the peer-observer tooling ports to the wireguard interface
-          CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT
-          CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT
-          # PEER_OBSERVER_TOOL_METRICS_PORT is only used on localhost, as the metrics are proxied
-          # and compressed via nginx.
-          CONSTANTS.PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT
-          # nginx serves old debug logs to webservers over this port.
-          CONSTANTS.DEBUG_LOGS_PORT
-          # - open the Bitcoin node RPC port to the wireguard interface
-          # for fork-observer and addrman-observer
-          config.services.bitcoind.mainnet.rpc.port
+          # A nginx that proxies (and compresses, if possible) the connections between the webserver and node.
+          CONSTANTS.NODE_TO_WEBSERVER_PORT
         ];
       };
     };
@@ -360,19 +334,17 @@ in
       tools = {
         metrics = {
           enable = true;
-          # This is only listening on 127.0.0.1 as it's proxied through nginx to
-          # have compression.
           metricsAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_METRICS_PORT}";
         };
 
         addrConnectivity = {
           enable = config.peer-observer.node.peer-observer.addrLookup;
-          metricsAddress = "${config.peer-observer.base.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT}";
+          metricsAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT}";
         };
 
         websocket = {
           enable = true;
-          websocketAddress = "${config.peer-observer.base.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}";
+          websocketAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}";
         };
       };
     };
@@ -454,37 +426,74 @@ in
       recommendedGzipSettings = true;
       recommendedOptimisation = true;
 
-      # Since the peer-observer-metrics-tool output can grow quite large and is
-      # it's not compressed, serve it via nginx that has compression turned on.
-      # This reduces bandwidth (and prometheus scrape timings) by a lot!
-      virtualHosts."compressed-peer-observer-metrics" = {
+      # This virtual host is exposed to the webserver(s). We use this to
+      # explicitly limit what the webserver has access to on the node.
+      virtualHosts."node-to-webserver-interface" = {
         listen = [
           {
             addr = "${config.peer-observer.base.wireguard.ip}";
-            port = CONSTANTS.PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT;
+            port = CONSTANTS.NODE_TO_WEBSERVER_PORT;
           }
         ];
-        locations."/" = {
-          proxyPass = "http://127.0.0.1:8282";
-        };
-      };
 
-      virtualHosts."old-debug-logs" = {
-        listen = [
-          {
-            addr = "${config.peer-observer.base.wireguard.ip}";
-            port = CONSTANTS.DEBUG_LOGS_PORT;
-          }
-        ];
-        locations."/" = {
-          root = CONSTANTS.DEBUG_LOGS_DIR;
-          extraConfig = ''
-            autoindex on;
-            autoindex_exact_size off;
-            # Limit the download bandwidth here, so everyone accessing it via
-            # the webserver is limited. This helps against a bandwidth DoS on the node.
-            limit_rate 500k; # kB/s
-          '';
+        locations = {
+
+          # access to the Bitcoin Core RPC interface
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}" = {
+            proxyPass = "http://127.0.0.1:${toString config.services.bitcoind.mainnet.rpc.port}";
+            extraConfig = ''
+              # Turn off some optimizations that don't work for some RPC clients.
+              proxy_buffering on;
+              proxy_request_buffering on;
+              chunked_transfer_encoding off;
+            '';
+          };
+
+          # debug logs the node hasn't rotated yet.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_DEBUG_LOGS}" = {
+            root = CONSTANTS.DEBUG_LOGS_DIR;
+            extraConfig = ''
+              autoindex on;
+              autoindex_exact_size off;
+              # Limit the download bandwidth here, so everyone accessing it via
+              # the webserver is limited. This helps against a bandwidth DoS on the node.
+              limit_rate 500k; # kB/s
+            '';
+          };
+
+          # access to the peer-observer websocket tool
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}" = {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}";
+            proxyWebsockets = true;
+          };
+
+          # access to the peer-observer metrics tool
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL}" = {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_METRICS_PORT}/metrics";
+          };
+
+          # access to the metrics by the peer-observer address connectivity tool
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL}" = {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT}/metrics";
+          };
+
+          # access to the /metrics endpoint of the node-exporter tool.
+          # Note: we don't want to give access to other paths on the node-exporter as they expose
+          # sensetive information that we don't need to expose.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE}" = {
+            proxyPass = "http://127.0.0.1:${toString config.services.prometheus.exporters.node.port}/metrics";
+          };
+
+          # access to the /metrics endpoint of the wireguard-exporter tool.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD}" = {
+            proxyPass = "http://127.0.0.1:${toString config.services.prometheus.exporters.wireguard.port}/metrics";
+          };
+
+          # access to the /metrics endpoint of the process-exporter tool.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS}" = {
+            proxyPass = "http://127.0.0.1:${toString config.services.prometheus.exporters.process.port}/metrics";
+          };
+
         };
       };
     };

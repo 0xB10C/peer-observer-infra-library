@@ -27,7 +27,7 @@ let
     inherit (host) id description;
     inherit name;
     rpcHost = (host.wireguard.ip);
-    rpcPort = 8332;
+    rpcPort = CONSTANTS.NODE_TO_WEBSERVER_PORT;
     rpcUser = "forkobserver";
     rpcPassword = CONSTANTS.FORK_OBSERVER_RPC_PASSWORD;
   };
@@ -37,7 +37,7 @@ let
     inherit name;
     rpc = {
       host = host.wireguard.ip;
-      port = 8332;
+      port = CONSTANTS.NODE_TO_WEBSERVER_PORT;
       user = "addrmanobserver";
       password = CONSTANTS.ADDRMAN_OBSERVER_RPC_PASSWORD;
     };
@@ -48,14 +48,14 @@ let
   mkWebsocketLocation =
     name: host:
     (lib.nameValuePair ("/websocket/${name}/") ({
-      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}/";
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}";
       proxyWebsockets = true;
     }));
 
   mkDebugLogLocation =
     name: host:
     (lib.nameValuePair ("/debug-logs/${name}/") ({
-      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.DEBUG_LOGS_PORT}/";
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_DEBUG_LOGS}";
       extraConfig = ''
         limit_rate 500k; # kB/s
       '';
@@ -477,9 +477,10 @@ in
         enable = true;
         retentionTime = config.peer-observer.web.prometheus.retention;
         scrapeConfigs = [
-          # node scrape config
+          # node scrape config:
+          # on localhost
           {
-            job_name = "node";
+            job_name = "node-local";
             scrape_interval = "15s";
             static_configs = [
               {
@@ -489,12 +490,19 @@ in
                   host = config.peer-observer.base.name;
                 };
               }
-            ]
-            ++ (mkScrapeConfigs config.infra.nodes config.services.prometheus.exporters.node.port);
+            ];
+          }
+          # on the node hosts
+          {
+            job_name = "node";
+            scrape_interval = "15s";
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE;
+            static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # wireguard scrape config
+          # on localhost:
           {
-            job_name = "wireguard";
+            job_name = "wireguard-localhost";
             scrape_interval = "30s";
             static_configs = [
               {
@@ -504,8 +512,14 @@ in
                   host = config.peer-observer.base.name;
                 };
               }
-            ]
-            ++ (mkScrapeConfigs config.infra.nodes config.services.prometheus.exporters.wireguard.port);
+            ];
+          }
+          # on the node hosts:
+          {
+            job_name = "wireguard";
+            scrape_interval = "30s";
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE;
+            static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # peer-observer-metrics scrape config
           {
@@ -513,26 +527,23 @@ in
             fallback_scrape_protocol = "PrometheusText0.0.4";
             scrape_interval = "15s";
             scrape_timeout = "14s";
-            static_configs = (
-              mkScrapeConfigs config.infra.nodes CONSTANTS.PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT
-            );
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL;
+            static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # addrConnectivityLookup scrape config
           {
             job_name = "peer-observer-addr-connectivity";
             scrape_interval = "15s";
             fallback_scrape_protocol = "PrometheusText0.0.4";
-            static_configs = (
-              mkScrapeConfigs addrConnectivityNodes CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT
-            );
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL;
+            static_configs = (mkScrapeConfigs addrConnectivityNodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # bitcoind process exporter scrape config
           {
             job_name = "process-exporter";
             scrape_interval = "30s";
-            static_configs = (
-              mkScrapeConfigs config.infra.nodes config.services.prometheus.exporters.process.port
-            );
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS;
+            static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
         ];
       };

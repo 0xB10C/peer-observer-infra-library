@@ -132,7 +132,7 @@ pkgs.testers.runNixOSTest {
     node2.wait_for_closed_port(${toString CONSTANTS.BITCOIND_RPC_PORT}, addr="node2", timeout=10)
 
     print("check that web1 can reach the bitcoind RPC on node1 via wireguard")
-    command = "curl ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.BITCOIND_RPC_PORT}"
+    command = "curl ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}"
     output = web1.succeed(command)
     print(f"{command}: {output}")
     assert_log("JSONRPC server handles only POST requests", output)
@@ -145,7 +145,7 @@ pkgs.testers.runNixOSTest {
 
     print("check peer-observer-metrics-tool metrics")
     # fetching node2 here since it has an inbound connection from node1
-    command = "curl ${infraConfig.nodes.node2.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_METRICS_COMPRESSED_PORT}"
+    command = "curl ${infraConfig.nodes.node2.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL}"
     output = web1.succeed(command)
     print(f"{command}: {output}")
 
