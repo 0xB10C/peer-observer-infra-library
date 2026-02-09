@@ -53,10 +53,15 @@
             buildInputs = [
               pkgs.nixos-anywhere
               pkgs.nixos-rebuild
+              pkgs.just
+              pkgs.wireguard-tools
+              pkgs.age
+              pkgs.openssl
               peer-observer-infra-library.packages.${system}.agenix
             ];
 
             shellHook = ''
+              # Shell functions (alternative to justfile recipes)
               deploy() {
                 local host=$1
                 echo "deploying $host..."
@@ -78,8 +83,11 @@
               export -f deploy
               export -f build-vm
 
-              echo "use 'deploy <host> to deploy a host'"
-              echo "use 'build-vm <host> to build a vm of a host (useful when testing)'"
+              echo ""
+              echo "Run 'just' to see available commands, or use these shell functions:"
+              echo "  deploy <host>   - Deploy configuration to host"
+              echo "  build-vm <host> - Build VM for local testing"
+              echo ""
             '';
           };
         }

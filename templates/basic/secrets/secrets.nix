@@ -23,8 +23,8 @@ in
   # Once you have generated a secret, open the file with e.g.
   # `agenix -e wireguard-private-key-node01.age`
   # and insert, save, and close the file.
-  # See the secrest section in https://github.com/0xB10C/peer-observer-infra-library
-  # for instructions on how to generate the secrests.
+  # See the secrets section in https://github.com/peer-observer/infra-library
+  # for instructions on how to generate secrets.
 
   ## nodes
 

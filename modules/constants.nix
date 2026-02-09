@@ -83,7 +83,7 @@ rec {
 
   # A UDP port exposed by the web hosts for nodes to connect to them.
   WIREGUARD_INTERFACE_PORT = 51820;
-  # Namse of the wireguard interface that connects the nodes to the web hosts.
+  # Name of the wireguard interface that connects the nodes to the web hosts.
   WIREGUARD_INTERFACE_NAME = "wg-peerobserver";
 
   DETAILED_DEBUG_LOG_CATEGORIES = [

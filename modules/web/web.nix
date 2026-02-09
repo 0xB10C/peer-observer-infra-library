@@ -369,7 +369,7 @@ in
         };
 
         # Users can and should overwrite this, if they want to e.g. put FULL_ACCESS
-        # behind authentification.
+        # behind authentication.
         "${config.peer-observer.web.domain}" = lib.mkDefault {
           enableACME = lib.mkDefault true;
           forceSSL = lib.mkDefault true;
