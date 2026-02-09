@@ -148,6 +148,34 @@ pkgs.testers.runNixOSTest {
         toString CONSTANTS.BITCOIND_P2P_PORT_BY_CHAIN."${infraConfig.nodes.node1.bitcoind.chain}"
       }, addr="node1", timeout=60);
 
+    def check_node_webserver_interface():
+      # create a fake log file on both nodes so that the nginx returns something
+      node1.succeed("mkdir -p ${CONSTANTS.DEBUG_LOGS_DIR}")
+      node1.succeed("touch ${CONSTANTS.DEBUG_LOGS_DIR}/fake-log.debug.gz")
+      node2.succeed("mkdir -p ${CONSTANTS.DEBUG_LOGS_DIR}")
+      node2.succeed("touch ${CONSTANTS.DEBUG_LOGS_DIR}/fake-log.debug.gz")
+
+      print("check that web1 can access the exposed webserver paths on the nodes")
+      for node in ["${infraConfig.nodes.node1.wireguard.ip}", "${infraConfig.nodes.node2.wireguard.ip}"]:
+        web1.wait_for_open_port(${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}, addr=node, timeout=10);
+        paths = ${builtins.toJSON CONSTANTS.NODE_TO_WEBSERVER_PATHS}
+        for path in paths:
+          print(f"checking path={path} on node={node}")
+          extra_args = ""
+          if path == "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}":
+            extra_args = "-H 'Connection: upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Key: peerobservertest' -H 'Sec-WebSocket-Version: 13'"
+          command = f"curl -s -I -X GET {extra_args} {node}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}{path} || true"
+
+          output = web1.succeed(command)
+          print(f"{command}: {output}")
+          match path:
+            case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}":
+              assert_log("HTTP/1.1 101 Switching Protocols", output)
+            case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}":
+              # Bitcoin Core RPC doesn't like HEAD requets, but that's fine as it means: Bitcoin Core is reachable
+              assert_log("HTTP/1.1 405 Method Not Allowed", output)  
+            case _:
+              assert_log("HTTP/1.1 200 OK", output)
 
     start_all()
 
@@ -157,6 +185,8 @@ pkgs.testers.runNixOSTest {
     node2.wait_for_unit("multi-user.target")
     web1.wait_for_unit("multi-user.target")
     web2.wait_for_unit("multi-user.target")
+
+    check_node_webserver_interface()
 
     web1.wait_for_unit("grafana.service")
     web1.wait_for_unit("prometheus.service")

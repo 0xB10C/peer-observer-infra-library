@@ -449,9 +449,9 @@ in
             '';
           };
 
-          # debug logs the node hasn't rotated yet.
+          # access to debug logs the node hasn't deleted yet.
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_DEBUG_LOGS}" = {
-            root = CONSTANTS.DEBUG_LOGS_DIR;
+            alias = "${CONSTANTS.DEBUG_LOGS_DIR}/";
             extraConfig = ''
               autoindex on;
               autoindex_exact_size off;
@@ -463,7 +463,7 @@ in
 
           # access to the peer-observer websocket tool
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}" = {
-            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}";
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}/";
             proxyWebsockets = true;
           };
 

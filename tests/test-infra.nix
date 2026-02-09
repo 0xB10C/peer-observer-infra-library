@@ -58,7 +58,7 @@ in
         detailedLogging = {
           enable = true;
           logsToKeep = 2;
-          printToConsole = true; # useful for debugging
+          printToConsole = true; # useful for debugging in tests
         };
         banlistScript = ''
           bitcoin-cli setban 162.218.65.0/24    add 31536000  # LinkingLion
@@ -70,6 +70,7 @@ in
           addnode=node2:12345
         '';
       };
+      peer-observer.addrLookup = true;
 
       extraConfig = (testOnlySSHHostKeyExtraConfig "node1") // {
         # extra memory needed for peer-observer extractor huge-msg table
@@ -90,12 +91,13 @@ in
         chain = "regtest";
         customPort = 12345;
         detailedLogging = {
-          printToConsole = true; # useful for debugging
+          printToConsole = true; # useful for debugging in tests
         };
         extraConfig = ''
           addnode=node1:18444
         '';
       };
+      peer-observer.addrLookup = true;
       extraConfig = (testOnlySSHHostKeyExtraConfig "node2") // {
         # extra memory needed for peer-observer extractor huge-msg table
         virtualisation.memorySize = 3072;
