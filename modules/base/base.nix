@@ -137,6 +137,10 @@ in
         };
       };
 
+      # Explicitly default to UTC (NixOS default is UTC when unset,
+      # but we set it here to be explicit).
+      time.timeZone = "UTC";
+
       # Clean the files in `/tmp` during boot.
       boot.tmp.cleanOnBoot = true;
       # Compressed tmp files and SWAP.

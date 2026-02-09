@@ -40,7 +40,7 @@ in
 
   # NOTE: by default, all hosts defined here are set to `setup = true;`.
   # This enables easier and faster initial set up. Once you provisined the
-  # secrets for a node (see README), feel free to set `setup = false;` and
+  # secrets for a node (see docs/secrets.md), feel free to set `setup = false;` and
   # redeploy the node.
 
   # Global configuration options that are applied to all hosts (nodes and webservers).
@@ -77,7 +77,7 @@ in
         # feel free to use a different IP range here.
         ip = "10.21.0.1";
         # FIXME:
-        # See the section on secrets on how to fill this in
+        # See docs/secrets.md on how to fill this in
         pubkey = "fakekH7xb/DdO...";
       };
       # FIXME:

@@ -1,0 +1,131 @@
+# peer-observer infrastructure management
+#
+# === INITIAL SETUP ===
+#   1. Generate age key: age-keygen -o ~/.age/key.txt
+#   2. Deploy with nixos-anywhere: just initial-deploy <host> root@<ip>
+#   3. Get host SSH keys: just get-host-key <host-ip>
+#   4. Update secrets/secrets.nix with host keys
+#   5. Generate secrets: just gen-wg-key <host>, just gen-grafana-password <host>
+#   6. Set setup = false in infra.nix and redeploy
+#
+# === ONGOING ===
+#   just deploy <host>     - Deploy configuration to host
+#   just build-vm <host>   - Build VM for local testing
+#   just rekey             - Re-encrypt secrets after key changes
+
+# Default recipe lists available commands
+default:
+    @just --list
+
+# Deploy configuration to a host
+deploy host:
+    nixos-rebuild switch \
+        --flake .#{{host}} \
+        --target-host {{host}} \
+        --build-host {{host}} \
+        --sudo \
+        --show-trace
+
+# Build a VM for local testing
+build-vm host:
+    nixos-rebuild build-vm \
+        --flake .#{{host}} \
+        --show-trace
+
+# Initial deployment using nixos-anywhere (wipes disk!)
+initial-deploy host target:
+    nix run github:nix-community/nixos-anywhere -- \
+        --generate-hardware-config nixos-generate-config ./hosts/{{host}}/hardware-configuration.nix \
+        --flake .#{{host}} \
+        --target-host {{target}} \
+        --build-on remote
+
+# === SECRETS MANAGEMENT ===
+
+# Generate and encrypt WireGuard key for a host
+gen-wg-key host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Generating WireGuard key for {{host}} ==="
+
+    # Generate keypair in memory
+    PRIVATE_KEY=$(wg genkey)
+    PUBLIC_KEY=$(echo "$PRIVATE_KEY" | wg pubkey)
+
+    # Extract recipient keys from secrets.nix
+    USER_KEY=$(sed -nE 's/.*user = "([^"]+)".*/\1/p' secrets/secrets.nix)
+    HOST_KEY=$(sed -nE 's/.*{{host}} = "([^"]+)".*/\1/p' secrets/secrets.nix)
+
+    # Validate keys aren't placeholders
+    if [[ -z "$USER_KEY" || "$USER_KEY" == *"fake"* || "$USER_KEY" == *"FIXME"* ]]; then
+        echo "ERROR: User age key not configured in secrets/secrets.nix"
+        echo "Generate with: age-keygen -o ~/.age/key.txt"
+        exit 1
+    fi
+
+    if [[ -z "$HOST_KEY" || "$HOST_KEY" == *"AAAAC3N.."* ]]; then
+        echo "ERROR: {{host}} SSH key not found or is a placeholder in secrets/secrets.nix"
+        echo "Run 'just get-host-key <host-ip>' first and update secrets/secrets.nix"
+        exit 1
+    fi
+
+    # Encrypt private key directly to .age file
+    echo "$PRIVATE_KEY" | age -r "$USER_KEY" -r "$HOST_KEY" \
+        -o secrets/wireguard-private-key-{{host}}.age
+
+    echo ""
+    echo "Private key encrypted to: secrets/wireguard-private-key-{{host}}.age"
+    echo ""
+    echo "Public key for infra.nix:"
+    echo "  pubkey = \"$PUBLIC_KEY\";"
+    echo ""
+    echo "=== Update infra.nix {{host}}.wireguard.pubkey with the above ==="
+
+# Generate and encrypt Grafana admin password for a webserver
+gen-grafana-password host:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Generating Grafana password for {{host}} ==="
+
+    PASSWORD=$(openssl rand -base64 32)
+
+    # Extract recipient keys from secrets.nix
+    USER_KEY=$(sed -nE 's/.*user = "([^"]+)".*/\1/p' secrets/secrets.nix)
+    HOST_KEY=$(sed -nE 's/.*{{host}} = "([^"]+)".*/\1/p' secrets/secrets.nix)
+
+    # Validate keys
+    if [[ -z "$USER_KEY" || "$USER_KEY" == *"fake"* || "$USER_KEY" == *"FIXME"* ]]; then
+        echo "ERROR: User age key not configured in secrets/secrets.nix"
+        exit 1
+    fi
+
+    if [[ -z "$HOST_KEY" || "$HOST_KEY" == *"AAAAC3N.."* ]]; then
+        echo "ERROR: {{host}} SSH key not found or is a placeholder"
+        exit 1
+    fi
+
+    echo "$PASSWORD" | age -r "$USER_KEY" -r "$HOST_KEY" \
+        -o secrets/grafana-admin-password-{{host}}.age
+
+    echo ""
+    echo "Password encrypted to: secrets/grafana-admin-password-{{host}}.age"
+    echo ""
+    echo "Grafana admin password (save this!):"
+    echo "  $PASSWORD"
+
+# Re-encrypt all secrets after changing keys in secrets.nix
+rekey:
+    cd secrets && agenix -r
+
+# View a secret (for debugging)
+view-secret file:
+    age -d secrets/{{file}}
+
+# Get SSH host key from a deployed host
+get-host-key host port="22":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Getting SSH host key for {{host}} (port {{port}}) ==="
+    ssh-keyscan -p {{port}} {{host}} 2>/dev/null
+    echo ""
+    echo "=== Add the host key to secrets/secrets.nix ==="
