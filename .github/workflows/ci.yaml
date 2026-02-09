@@ -9,8 +9,28 @@ on:
     types: [opened, reopened, synchronize, assigned, unassigned]
 
 jobs:
+  nix-fmt:
+    name: nix fmt
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install magic nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Show Nix version
+        run: nix --version
+
+      - name: Check formatting with nix fmt
+        run: |
+          nix fmt -- --ci
+
   nix-check:
-    name: Run nix flake check & nix fmt
+    name: nix flake check
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,7 +58,3 @@ jobs:
 
       - name: Run nix flake check
         run: nix flake check --print-build-logs --show-trace
-
-      - name: Check formatting with nix fmt
-        run: |
-          nix fmt -- --ci
