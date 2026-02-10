@@ -19,6 +19,8 @@ let
       ./modules/base/base.nix
       ./modules/web/web.nix
       ./modules/node/node.nix
+      ./modules/node/parca/agent.nix
+      ./modules/node/parca/server.nix
 
       agenix.nixosModules.default
 

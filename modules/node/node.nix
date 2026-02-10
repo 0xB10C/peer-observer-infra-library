@@ -119,6 +119,8 @@ in
     peer-observer = {
       addrLookup = lib.mkEnableOption "the peer-observer address-connectivity lookup tool. This reaches out to nodes on the network and might leak IP addresses.";
     };
+
+    parca = lib.mkEnableOption "parca.dev continues profiling on the node. This runs the parca-agent and the parca-server. The agent runs as root, so think about what that means for the host before you enable it.";
   };
 
   config = lib.mkIf (config.peer-observer.node.enable && !config.peer-observer.base.setup) {
@@ -421,6 +423,17 @@ in
       };
     };
 
+    services.parca = mkIf config.peer-observer.node.parca {
+      server = {
+        enable = true;
+        listenAddress = "127.0.0.1:${toString CONSTANTS.PARCA_SERVER_PORT}";
+      };
+      agent = {
+        enable = true;
+        server = "127.0.0.1:${toString CONSTANTS.PARCA_SERVER_PORT}";
+      };
+    };
+
     services.nginx = {
       enable = true;
       recommendedGzipSettings = true;
@@ -492,6 +505,11 @@ in
           # access to the /metrics endpoint of the process-exporter tool.
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS}" = {
             proxyPass = "http://127.0.0.1:${toString config.services.prometheus.exporters.process.port}/metrics";
+          };
+
+          # access to parca-server showing profiling data.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PARCA_SERVER}" = mkIf config.peer-observer.node.parca {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PARCA_SERVER_PORT}/";
           };
 
         };
