@@ -35,6 +35,7 @@ pkgs.testers.runNixOSTest {
 
   testScript = ''
     import time
+    import json
 
     def assert_log(expected, output, negated=False):
       print(f"asserting that '{expected}' is in output..")
@@ -177,6 +178,45 @@ pkgs.testers.runNixOSTest {
             case _:
               assert_log("HTTP/1.1 200 OK", output)
 
+    def check_prometheus_scrape_config():
+      """Verify each remote-node Prometheus scrape job uses the correct URL path
+      from CONSTANTS. Catches bugs where the wrong metrics_path or port
+      constant is used in the scrape config."""
+
+      print("checking Prometheus scrape configuration for remote node jobs...")
+      web1.wait_for_open_port(9090, timeout=60)
+      command = "curl -sf 'http://127.0.0.1:9090/api/v1/targets?state=active'"
+      output = web1.wait_until_succeeds(command, timeout=60)
+      data = json.loads(output)
+
+      # Map: job_name -> expected path substring in scrapeUrl
+      # Uses the same CONSTANTS as the scrape config in web.nix
+      expected_paths = {
+        "node": "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE}",
+        "wireguard": "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD}",
+        "process-exporter": "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS}",
+        "peer-observer-metrics": "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL}",
+        "peer-observer-addr-connectivity": "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL}",
+      }
+
+      targets_by_job = {}
+      for target in data["data"]["activeTargets"]:
+        job = target["labels"]["job"]
+        targets_by_job.setdefault(job, []).append(target)
+
+      for job, expected_path in expected_paths.items():
+        print(f"  checking job '{job}'...")
+        assert job in targets_by_job, \
+          f"No targets found for Prometheus job '{job}'"
+        for target in targets_by_job[job]:
+          url = target["scrapeUrl"]
+          health = target["health"]
+          print(f"    url='{url}' health='{health}'")
+          assert expected_path in url, \
+            f"Job '{job}' scrapes '{url}' but expected path containing '{expected_path}'"
+
+      print("all Prometheus remote-node scrape jobs correctly configured!")
+
     start_all()
 
     check_for_wireguard()
@@ -229,6 +269,8 @@ pkgs.testers.runNixOSTest {
     check_peer_observer_metrics_tool()
 
     check_fork_observer()
+
+    check_prometheus_scrape_config()
 
     # TODO: test addrLookup
     # TODO: test logrotate (logrotate currently might only work on mainnet..)
