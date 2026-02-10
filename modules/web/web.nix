@@ -535,7 +535,7 @@ in
             job_name = "peer-observer-addr-connectivity";
             scrape_interval = "15s";
             fallback_scrape_protocol = "PrometheusText0.0.4";
-            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL;
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL;
             static_configs = (mkScrapeConfigs addrConnectivityNodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # bitcoind process exporter scrape config

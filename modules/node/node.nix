@@ -473,13 +473,13 @@ in
           };
 
           # access to the metrics by the peer-observer address connectivity tool
-          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL}" = {
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL}" = {
             proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT}/metrics";
           };
 
           # access to the /metrics endpoint of the node-exporter tool.
           # Note: we don't want to give access to other paths on the node-exporter as they expose
-          # sensetive information that we don't need to expose.
+          # sensitive information that we don't need to expose.
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE}" = {
             proxyPass = "http://127.0.0.1:${toString config.services.prometheus.exporters.node.port}/metrics";
           };

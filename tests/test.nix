@@ -172,7 +172,7 @@ pkgs.testers.runNixOSTest {
             case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}":
               assert_log("HTTP/1.1 101 Switching Protocols", output)
             case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}":
-              # Bitcoin Core RPC doesn't like HEAD requets, but that's fine as it means: Bitcoin Core is reachable
+              # Bitcoin Core RPC doesn't like HEAD requests, but that's fine as it means: Bitcoin Core is reachable
               assert_log("HTTP/1.1 405 Method Not Allowed", output)  
             case _:
               assert_log("HTTP/1.1 200 OK", output)

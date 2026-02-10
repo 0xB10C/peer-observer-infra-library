@@ -8,7 +8,7 @@ rec {
   NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL = "/peer-observer-metrics-tool/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL = "/peer-observer-websocket-tool/";
-  NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL = "/peer-observer-addressconnectivty-tool/";
+  NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL = "/peer-observer-addressconnectivity-tool/";
   NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE = "/prometheus-exporter-node/";
   NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD = "/prometheus-exporter-wireguard/";
   NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS = "/prometheus-exporter-process/";
@@ -19,7 +19,7 @@ rec {
     NODE_TO_WEBSERVER_PATH_DEBUG_LOGS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL
-    NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVTY_TOOL
+    NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL
     NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE
     NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD
     NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_PROCESS
@@ -48,8 +48,6 @@ rec {
     "regtest" = "regtest";
   };
 
-  # nginx serves old debug logs to webservers over this port.
-  DEBUG_LOGS_PORT = 38821;
   # Place where logrotate should put the debug.log's
   DEBUG_LOGS_DIR = "/data/debug-logs";
 
@@ -97,7 +95,7 @@ rec {
 
   GRAFANA_PORT = 9321;
 
-  # Port for the nginx server that provides full access to
+  # Port for the nginx server that provides limited access to
   # peer-observer tools and data.
   NGINX_INTERNAL_LIMITED_ACCESS_PORT = 8001;
   NGINX_INTERNAL_LIMITED_ACCESS_NAME = "LIMITED_ACCESS";
