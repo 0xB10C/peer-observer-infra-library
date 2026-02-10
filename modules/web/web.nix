@@ -48,7 +48,7 @@ let
   mkWebsocketLocation =
     name: host:
     (lib.nameValuePair ("/websocket/${name}/") ({
-      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}";
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}";
       proxyWebsockets = true;
     }));
 
@@ -518,7 +518,7 @@ in
           {
             job_name = "wireguard";
             scrape_interval = "30s";
-            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_NODE;
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PROMETHEUS_EXPORTER_WIREGUARD;
             static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # peer-observer-metrics scrape config
