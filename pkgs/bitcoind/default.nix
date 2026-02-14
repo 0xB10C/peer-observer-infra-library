@@ -71,12 +71,6 @@ stdenv.mkDerivation rec {
   # Don't strip the binaries to have debug symbols for debugging.
   dontStrip = true;
 
-  # We make 'assumes()' to behave like asserts()
-  # We can't set them in cmakeFlags with -DAPPEND_* as the spaces would mean the is treated as seperate argument to cmake.
-  preConfigure = ''
-    export CXXFLAGS="$CXXFLAGS -DABORT_ON_FAILED_ASSUME"
-  '';
-
   postPatch = ''
     ${lib.optionalString (fakeVersionMajor != null) ''
       echo "Patching MAJOR version number in CMakeLists.txt to ${fakeVersionMajor}"
@@ -95,15 +89,26 @@ stdenv.mkDerivation rec {
     "-DBUILD_FUZZ_BINARY=OFF"
     "-DENABLE_WALLET=OFF"
 
-    # We use DCMAKE_BUILD_TYPE=Debug for more debug checks, but enable optimizations here similar to
+    # We use DCMAKE_BUILD_TYPE=Debug for more debug checks, but enable -O3 optimizations below similar to
     # https://github.com/bitcoin/bitcoin/blob/38e6ea9f3a6ba9c987936e1316ff17a51a73040d/.github/ci-test-each-commit-exec.py#L36-L38
+    # Running in debug mode also makes 'assumes()' to behave like asserts().
     "-DCMAKE_BUILD_TYPE=Debug"
-    "-DAPPEND_CXXFLAGS=-O3" # Debug mode defaults to -O0 -g3
-    "-DAPPEND_CFLAGS=-O3" # Debug mode defaults to -O0 -g3
-
+    # TODO: check: does -O3 harm some of the sanitizers?
     (lib.optional sanitizersThread "-DSANITIZERS=thread")
     (lib.optional sanitizersAddressUndefined "-DSANITIZERS=address,undefined")
   ];
+
+  # We can't set multiple flags in cmakeFlags with -DAPPEND_* as a space is
+  # treated as separate argument to cmake.
+  #
+  # For continues profiling, these help to have better stack traces:
+  # -ggdb3: Maximum debug info for GDB-compatible tools
+  # -fno-omit-frame-pointer: Required for accurate stack traces
+  # -fno-inline: Prevent function inlining
+  # -fno-optimize-sibling-calls: Avoid tail-call elimination
+  preConfigure = ''
+    export CXXFLAGS="$CXXFLAGS -ggdb3 -O3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
+  '';
 
   doCheck = false;
   enableParallelBuilding = true;
