@@ -1,0 +1,100 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "parca",
+        "uid": "${ParcaDatasource}"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {},
+      "pluginVersion": "12.3.2",
+      "repeat": "ParcaDatasource",
+      "repeatDirection": "v",
+      "targets": [
+        {
+          "datasource": {
+            "type": "parca",
+            "uid": "${ParcaDatasource}"
+          },
+          "labelSelector": "{comm=\"bitcoind\"}",
+          "profileTypeId": "parca_agent:samples:count:cpu:nanoseconds:delta",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "title": "Flamegraph for ${ParcaDatasource}",
+      "transparent": true,
+      "type": "flamegraph"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "description": "",
+        "includeAll": true,
+        "label": "datasource",
+        "multi": true,
+        "name": "ParcaDatasource",
+        "options": [],
+        "query": "parca",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "hidden": true,
+    "refresh_intervals": [
+      "5m"
+    ]
+  },
+  "timezone": "browser",
+  "title": "Bitcoin Core continues profiling flamegraph (1h)",
+  "uid": "bcmrcbp",
+  "version": 12
+}
