@@ -41,8 +41,6 @@ in
 
     config = mkOption {
       type = types.attrs;
-      # TODO: add filtering for processes we don't care about:
-      # Set relabel_configs to filter out process names.
       default = {
         object_storage = {
           bucket = {
