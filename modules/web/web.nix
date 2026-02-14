@@ -43,6 +43,12 @@ let
     };
   };
 
+  mkGrafanaDatasourceParca = name: host: {
+    name = "parca-${name}";
+    type = "parca";
+    url = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PARCA_SERVER}";
+  };
+
   mkWebsocketJsonEntry = name: (''"${name}": "/websocket/${name}/"'');
   mkWebsocketJson = names: (lib.concatMapStringsSep ", " (name: (mkWebsocketJsonEntry name)) names);
   mkWebsocketLocation =
@@ -437,34 +443,39 @@ in
           server_url = "http://127.0.0.1:${toString config.services.grafana-image-renderer.settings.service.port}/render";
         };
       };
-      provision = {
-        enable = true;
-        datasources.settings.datasources = [
-          {
-            name = "prometheus";
-            type = "prometheus";
-            url = "http://127.0.0.1:${toString config.services.prometheus.port}";
-            isDefault = true;
-          }
-        ];
-        dashboards.settings.providers = [
-          {
-            # dashboards shipped with the NixOS flake
-            name = "peer-observer-flake";
-            updateIntervalSeconds = 999999;
-            options.path = (./dashboards);
-            options.foldersFromFilesStructure = true;
-          }
-          {
-            # dashboards shipped with the peer-observer metrics tool
-            name = "peer-observer-metrics-tool";
-            updateIntervalSeconds = 999999;
-            options.path = "${config.peer-observer.base.b10c-pkgs.peer-observer}/dashboards";
-            options.foldersFromFilesStructure = true;
-          }
-          # TODO: allow to supply extra dashboards
-        ];
-      };
+      provision =
+        let
+          parcaNodes = lib.attrsets.filterAttrs (name: host: host.parca) config.infra.nodes;
+        in
+        {
+          enable = true;
+          datasources.settings.datasources = [
+            {
+              name = "prometheus";
+              type = "prometheus";
+              url = "http://127.0.0.1:${toString config.services.prometheus.port}";
+              isDefault = true;
+            }
+          ]
+          ++ lib.attrValues (lib.mapAttrs mkGrafanaDatasourceParca parcaNodes);
+          dashboards.settings.providers = [
+            {
+              # dashboards shipped with the NixOS flake
+              name = "peer-observer-flake";
+              updateIntervalSeconds = 999999;
+              options.path = (./dashboards);
+              options.foldersFromFilesStructure = true;
+            }
+            {
+              # dashboards shipped with the peer-observer metrics tool
+              name = "peer-observer-metrics-tool";
+              updateIntervalSeconds = 999999;
+              options.path = "${config.peer-observer.base.b10c-pkgs.peer-observer}/dashboards";
+              options.foldersFromFilesStructure = true;
+            }
+            # TODO: allow to supply extra dashboards
+          ];
+        };
     };
 
     services.prometheus =
