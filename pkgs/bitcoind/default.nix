@@ -93,6 +93,9 @@ stdenv.mkDerivation rec {
     # https://github.com/bitcoin/bitcoin/blob/38e6ea9f3a6ba9c987936e1316ff17a51a73040d/.github/ci-test-each-commit-exec.py#L36-L38
     # Running in debug mode also makes 'assumes()' to behave like asserts().
     "-DCMAKE_BUILD_TYPE=Debug"
+    # Debug mode defaults to -O0 -g3, but we want our binaries to have -O3.
+    "-DAPPEND_CXXFLAGS=-O3"
+    "-DAPPEND_CFLAGS=-O3"
     # TODO: check: does -O3 harm some of the sanitizers?
     (lib.optional sanitizersThread "-DSANITIZERS=thread")
     (lib.optional sanitizersAddressUndefined "-DSANITIZERS=address,undefined")
@@ -107,7 +110,7 @@ stdenv.mkDerivation rec {
   # -fno-inline: Prevent function inlining
   # -fno-optimize-sibling-calls: Avoid tail-call elimination
   preConfigure = ''
-    export CXXFLAGS="$CXXFLAGS -ggdb3 -O3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
+    export CXXFLAGS="$CXXFLAGS -ggdb3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
   '';
 
   doCheck = false;
