@@ -21,7 +21,7 @@
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
   gitBranch ? "master",
-  gitCommit ? "38f951f8287de0b4ca49eeb168cc80e3b0c24e94", # master at 2026-01-20
+  gitCommit ? "8ee24d764a2820259fe42f8def93fd8a2c36a4cf", # master at 2026-02-19
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
 }:
