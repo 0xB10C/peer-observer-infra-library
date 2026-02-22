@@ -70,7 +70,11 @@ in
           addnode=node2:12345
         '';
       };
-      peer-observer.addrLookup = true;
+
+      peer-observer = {
+        extractors.logs.enable = true;
+        addrLookup = true;
+      };
 
       parca = true;
 

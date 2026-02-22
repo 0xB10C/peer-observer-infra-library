@@ -117,7 +117,14 @@ in
     };
 
     peer-observer = {
+      extractors = {
+        logs = {
+          enable = lib.mkEnableOption "the peer-observer log-extractor";
+        };
+      };
+
       addrLookup = lib.mkEnableOption "the peer-observer address-connectivity lookup tool. This reaches out to nodes on the network and might leak IP addresses.";
+
     };
 
     parca = lib.mkEnableOption "parca.dev continues profiling on the node. This runs the parca-agent and the parca-server. The agent runs as root, so think about what that means for the host before you enable it.";
