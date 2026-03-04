@@ -22,36 +22,67 @@ in
   options = {
     infra = {
 
-      global = {
-        admin = {
-          username = lib.mkOption {
-            type = lib.types.str;
-            default = null;
-            description = "The username of the admin user. Used for logging in via SSH.";
-          };
-          sshPubKeys = lib.mkOption {
-            type = with lib.types; listOf str;
-            default = [ ];
-            description = "SSH public keys that will be able to login (i.e. authorized_keys).";
-            example = [
-              "ssh-rsa AAAAB3Nza.."
-            ];
-            apply =
-              val:
-              if val == [ ] then
-                throw "The option `global.admin.sshPubKey` must not be empty. Otherwise, you won't be able to SSH into your hosts."
-              else
-                val;
-          };
-        };
+      global = lib.mkOption {
+        default = { };
+        description = ''
+          Global settings applied to every host in the deployment
+          (both nodes and webservers).
+        '';
+        type = lib.types.submodule {
+          options = {
+            admin = lib.mkOption {
+              default = { };
+              description = ''
+                Admin user created on all hosts for SSH access.
+              '';
+              type = lib.types.submodule {
+                options = {
+                  username = lib.mkOption {
+                    type = lib.types.str;
+                    default = null;
+                    example = "myuser";
+                    description = ''
+                      Admin username. Cannot be "root" - root login
+                      is disabled.
+                    '';
+                  };
+                  sshPubKeys = lib.mkOption {
+                    type = with lib.types; listOf str;
+                    default = [ ];
+                    description = ''
+                      SSH public keys added to the admin user's
+                      authorized_keys on all hosts. Must not be
+                      empty - evaluation will throw if no keys are
+                      provided, to prevent locking yourself out.
+                    '';
+                    example = [
+                      "ssh-ed25519 AAAA..."
+                    ];
+                    apply =
+                      val:
+                      if val == [ ] then
+                        throw "The option `global.admin.sshPubKeys` must not be empty. Otherwise, you won't be able to SSH into your hosts."
+                      else
+                        val;
+                  };
+                };
+              };
+            };
 
-        extraConfig = lib.mkOption {
-          type = lib.types.attrs;
-          default = { };
-          example = {
-            system.stateVersion = "25.11";
+            extraConfig = lib.mkOption {
+              type = lib.types.attrs;
+              default = { };
+              example = {
+                system.stateVersion = "25.11";
+              };
+              description = ''
+                NixOS configuration attribute set merged into every
+                host (both nodes and webservers). Use for settings
+                that should be uniform across all machines, such as
+                system.stateVersion or locale settings.
+              '';
+            };
           };
-          description = "Configuration applied to all node and webserver systems.";
         };
       };
 
@@ -59,19 +90,31 @@ in
         default = null;
         type = lib.types.path;
         example = ./secrets;
-        description = "Path to the agenix secrets directory.";
+        description = ''
+          Path to the directory containing .age-encrypted secret
+          files. All hosts read WireGuard keys and Grafana
+          passwords from this path.
+        '';
       };
 
       webservers = lib.mkOption {
         type = lib.types.attrsOf (lib.types.submodule { options = webOptions; });
         default = { };
-        description = "A set of named webservers.";
+        description = ''
+          Named webservers that aggregate data from nodes into a
+          single web interface (Grafana, Prometheus, fork-observer,
+          addrman-observer). Each key becomes the host name.
+        '';
       };
 
       nodes = lib.mkOption {
         type = lib.types.attrsOf (lib.types.submodule { options = nodeOptions; });
         default = { };
-        description = "A set of named nodes.";
+        description = ''
+          Named peer-observer nodes. Each runs a Bitcoin Core
+          instance, extractors, tools, and a NATS message broker.
+          Each key becomes the host name.
+        '';
       };
     };
   };

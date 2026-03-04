@@ -27,10 +27,9 @@ in
   # - the peer-observer frontend tools (websocket, ...)
   # - a fork-observer instance connected to all nodes
   # - an addrman-observer instance connected to all nodes
-  # - .. TODO:
   #
   # The configuration options are documented in
-  # https://github.com/peer-observer/infra-library/blob/master/docs/configuration.md
+  # https://peer-observer.github.io/infra-library
   #
   # However, this is NixOS and you can pretty much override everything.
   # To do this, use the (global, per-host) extraConfig arguments below.

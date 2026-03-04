@@ -122,15 +122,19 @@ in
         CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_NAME
         CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME
       ];
+
       default = CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_NAME;
       example = CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME;
       description = ''
-        Choose if the `${CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_NAME}` or
-        `${CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME}` peer-observer tools
-        and data should be exposed. `${CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME}`
-        is only intended for demo setups and SHOULD NOT be used for production
-        setups. ${CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME} allows finding out
-        the IP addresses of the honeypot nodes.
+        Controls what data nginx exposes publicly.
+        `${CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_NAME}` hides data that
+        could reveal node locations (IP addresses, honeypot details) and is
+        safe for public-facing deployments.
+        `${CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_NAME}` exposes all data
+        including raw peer addresses - if using this mode, place an
+        authentication layer in front of nginx (basic auth, OAuth proxy,
+        or restrict access to a VPN). The name is deliberately prominent:
+        this is a security-relevant decision.
       '';
     };
 
@@ -138,7 +142,8 @@ in
       retention = lib.mkOption {
         type = lib.types.str;
         default = "30d";
-        description = "How long the prometheus metrics should be kept.";
+        example = "90d";
+        description = "How long Prometheus metrics are retained. Uses Prometheus duration syntax (e.g. 30d, 90d, 1y). Increase for longer historical analysis windows.";
       };
     };
 
@@ -146,7 +151,8 @@ in
       admin_user = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
         default = null;
-        description = "The username of the Grafana admin user.";
+        example = "admin";
+        description = "The username of the Grafana admin user. The password is managed via agenix.";
       };
     };
 
