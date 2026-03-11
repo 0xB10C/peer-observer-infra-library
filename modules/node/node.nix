@@ -119,7 +119,9 @@ in
     peer-observer = {
       extractors = {
         logs = {
-          enable = lib.mkEnableOption "the peer-observer log-extractor";
+          enable = lib.mkEnableOption "the peer-observer log-extractor" // {
+            default = true;
+          };
         };
       };
 
