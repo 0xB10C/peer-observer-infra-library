@@ -141,7 +141,8 @@ in
         listen = "127.0.0.1:${toString NATS_PORT}";
         http = "127.0.0.1:8222";
         # See https://github.com/0xB10C/peer-observer/blob/master/extractors/ebpf/README.md#nats-settings
-        max_payload = 5242880; # 5MB
+        # addtionally, some RPC events like `getrawaddrman` produce a large message.
+        max_payload = 15728640; # 15MB
       };
     };
 
