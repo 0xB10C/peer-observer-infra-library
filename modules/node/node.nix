@@ -326,6 +326,7 @@ in
           rpcHost = "127.0.0.1:${toString config.services.bitcoind.mainnet.rpc.port}";
           rpcUser = "rpc-extractor";
           rpcPass = CONSTANTS.RPC_EXTRACTOR_RPC_PASSWORD;
+          metricsAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_RPC_METRICS_PORT}";
         };
         p2p = {
           enable = true;
@@ -495,6 +496,11 @@ in
           # access to the metrics by the peer-observer address connectivity tool
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL}" = {
             proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_ADDRCONNECTIVITY_PORT}/metrics";
+          };
+
+          # access to the peer-observer rpc-extractor metrics
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS}" = {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_RPC_METRICS_PORT}/metrics";
           };
 
           # access to the /metrics endpoint of the node-exporter tool.
