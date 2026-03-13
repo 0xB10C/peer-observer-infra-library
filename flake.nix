@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-25.11";
     b10c-nix = {
-      url = "github:0xb10c/nix";
+      url = "github:0xb10c/nix?ref=2026-03-log-level-and-line-bytes-REBASED";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     agenix = {
