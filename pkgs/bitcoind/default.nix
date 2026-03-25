@@ -1,6 +1,7 @@
 {
   stdenv,
   lib,
+  versionCheckHook,
   # nativeBuildInputs
   pkg-config,
   cmake,
@@ -16,12 +17,12 @@
   # to avoid poking out as vXX.99 development builds or as release
   # candidate testers. This is useful when wanting to avoid detection
   # of the honey pot nodes.
-  fakeVersionMajor ? null,
-  fakeVersionMinor ? null,
+  fakeVersionMajor ? "30",
+  fakeVersionMinor ? "2",
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
-  gitBranch ? "master",
-  gitCommit ? "8ee24d764a2820259fe42f8def93fd8a2c36a4cf", # master at 2026-02-19
+  gitBranch ? "31.x",
+  gitCommit ? "d3737769caac16570f3456fb437106a562fc8eef", # v31.0rc1
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
 }:
@@ -33,7 +34,11 @@ assert sanitizersThread -> !sanitizersAddressUndefined;
 
 stdenv.mkDerivation rec {
   name = "bitcoind";
-  version = "${gitURL}-${gitBranch}-${gitCommit}";
+  version =
+    if fakeVersionMajor != null && fakeVersionMinor != null then
+      "${fakeVersionMajor}.${fakeVersionMinor}"
+    else
+      "${gitURL}-${gitBranch}-${gitCommit}";
 
   # passthru these to be able to access them via e.g. package.gitURL
   passthru = {
@@ -115,4 +120,12 @@ stdenv.mkDerivation rec {
 
   doCheck = false;
   enableParallelBuilding = true;
+
+  nativeInstallCheckInputs = lib.optionals (fakeVersionMajor != null || fakeVersionMinor != null) [
+    versionCheckHook
+  ];
+  versionCheckProgram = "${placeholder "out"}/bin/bitcoin-cli";
+  versionCheckProgramArg = "--version";
+  doInstallCheck = true;
+
 }
