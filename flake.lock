@@ -30,15 +30,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1774950788,
-        "narHash": "sha256-obrBonNYg6/Tl2fcGmrMmucX4I8w3VmdVQsnEKISDRA=",
+        "lastModified": 1775141897,
+        "narHash": "sha256-XAUttd8GG54opnO/IYE7LQSSRG+dnFZBtWo/eQwmeuo=",
         "owner": "0xb10c",
         "repo": "nix",
-        "rev": "93004a068aac077df7992765db64190230436150",
+        "rev": "3b5e715cf811c8ecbb3d315f1e5d5b473f8f0dd2",
         "type": "github"
       },
       "original": {
         "owner": "0xb10c",
+        "ref": "2026-04-signet-bip54",
         "repo": "nix",
         "type": "github"
       }
