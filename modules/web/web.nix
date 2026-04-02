@@ -165,6 +165,18 @@ in
         example = 0;
         description = "Height at which fork-observer should start to consider forks. The default works well for mainnet, but will not work for other chains/networks.";
       };
+
+      poolIdentification = {
+        enable = lib.mkEnableOption "enable pool-identification" // {
+          default = true;
+        };
+        network = lib.mkOption {
+          type = lib.types.str;
+          default = "Mainnet";
+          description = "Data and network used for pool-identification of the blocks.";
+        };
+
+      };
     };
 
   };
@@ -387,7 +399,10 @@ in
           name = config.peer-observer.web.fork-observer.networkName;
           description = config.peer-observer.web.fork-observer.description;
           minForkHeight = config.peer-observer.web.fork-observer.minForkHeight;
-          poolIdentification.enable = true;
+          poolIdentification = {
+            enable = config.peer-observer.web.fork-observer.poolIdentification.enable;
+            network = config.peer-observer.web.fork-observer.poolIdentification.network;
+          };
           nodes = lib.attrValues (lib.mapAttrs mkForkObserverNode config.infra.nodes);
         }
       ];
