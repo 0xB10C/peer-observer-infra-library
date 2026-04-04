@@ -194,6 +194,13 @@ in
       }
     ];
 
+    # Allow nginx to read ACME challenge files for HTTP-01 validation.
+    # Without this, /var/lib/acme/acme-challenge (owned acme:acme, mode 750)
+    # is unreadable by the nginx worker, causing 403 on renewal attempts.
+    # See: https://github.com/NixOS/nixpkgs/blob/nixos-25.11/nixos/modules/security/acme/default.md
+    users.groups.acme = { };
+    users.users.${config.services.nginx.user}.extraGroups = [ "acme" ];
+
     services.nginx = {
       enable = true;
 

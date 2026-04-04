@@ -103,6 +103,16 @@ pkgs.testers.runNixOSTest {
       web1.wait_for_unit("wireguard-${CONSTANTS.WIREGUARD_INTERFACE_NAME}.service")
       # web2 doesn't have a wireguard interface as it's "setup = true;"
 
+    def check_nginx_in_acme_group():
+      """Verify the nginx user is in the acme group so it can serve ACME
+      HTTP-01 challenge files from /var/lib/acme/acme-challenge."""
+      web1.wait_for_unit("nginx.service")
+      print("check that the nginx worker user is in the acme group on web1")
+      nginx_user = web1.succeed("ps -o user= -C nginx | grep -v root | head -1").strip()
+      print(f"nginx worker runs as: {nginx_user}")
+      output = web1.succeed(f"groups {nginx_user}")
+      assert_log("acme", output)
+
     def check_for_index_on_webserver():
       print("check for index.html.nix on web1")
       web1.wait_for_unit("nginx.service")
@@ -237,6 +247,8 @@ pkgs.testers.runNixOSTest {
 
     web1.wait_for_unit("grafana.service")
     web1.wait_for_unit("prometheus.service")
+
+    check_nginx_in_acme_group()
 
     check_for_index_on_webserver()
 
