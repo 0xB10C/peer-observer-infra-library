@@ -22,7 +22,7 @@
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
   gitBranch ? "31.x",
-  gitCommit ? "d3737769caac16570f3456fb437106a562fc8eef", # v31.0rc1
+  gitCommit ? "6574cb40869b96b9ffc79c19dc8f4e467d60f321", # v31.0
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
 }:
