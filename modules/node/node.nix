@@ -555,8 +555,6 @@ in
       # the peer-observer tools and extractors as packages
       # e.g. `$ logger`
       config.peer-observer.base.b10c-pkgs.peer-observer
-      # useful to see NATS server load
-      pkgs.nats-top
     ];
 
   };
