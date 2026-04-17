@@ -10,11 +10,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1762618334,
-        "narHash": "sha256-wyT7Pl6tMFbFrs8Lk/TlEs81N6L+VSybPfiIgzU8lbQ=",
+        "lastModified": 1770165109,
+        "narHash": "sha256-9VnK6Oqai65puVJ4WYtCTvlJeXxMzAp/69HhQuTdl/I=",
         "owner": "ryantm",
         "repo": "agenix",
-        "rev": "fcdea223397448d35d9b31f798479227e80183f6",
+        "rev": "b027ee29d959fda4b60b57566d64c98a202e0feb",
         "type": "github"
       },
       "original": {
@@ -30,15 +30,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1776072973,
-        "narHash": "sha256-8FrF0p197Ghn7RLr9pt2m6aKe8tg9MBSdODC0VbnmQc=",
+        "lastModified": 1776426245,
+        "narHash": "sha256-GLPuvASaK+S5IzYkmE0Oc303O34XLR8kUgxtjzfDfVs=",
         "owner": "0xb10c",
         "repo": "nix",
-        "rev": "a42f6dd10bba2a7c3141e348112a3ff0806558c2",
+        "rev": "1bc173e42ea23d989ce5bda2cb9f1f69d028914f",
         "type": "github"
       },
       "original": {
         "owner": "0xb10c",
+        "ref": "2026-04-peer-observer-dev",
         "repo": "nix",
         "type": "github"
       }
@@ -88,11 +89,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1767480499,
-        "narHash": "sha256-8IQQUorUGiSmFaPnLSo2+T+rjHtiNWc+OAzeHck7N48=",
+        "lastModified": 1776221942,
+        "narHash": "sha256-FbQAeVNi7G4v3QCSThrSAAvzQTmrmyDLiHNPvTF2qFM=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "30a3c519afcf3f99e2c6df3b359aec5692054d92",
+        "rev": "1766437c5509f444c1b15331e82b8b6a9b967000",
         "type": "github"
       },
       "original": {

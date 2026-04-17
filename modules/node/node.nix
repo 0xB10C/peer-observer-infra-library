@@ -200,7 +200,7 @@ in
           server=1
 
           # rpc-extractor (peer-observer) user
-          rpcwhitelist=rpc-extractor:getpeerinfo,getmempoolinfo,uptime,getnettotals,getaddrmaninfo,getmemoryinfo,getchaintxstats,getnetworkinfo,getblockchaininfo,getorphantxs,getrawaddrman
+          rpcwhitelist=rpc-extractor:getpeerinfo,getmempoolinfo,uptime,getnettotals,getaddrmaninfo,getmemoryinfo,getchaintxstats,getnetworkinfo,getblockchaininfo,getorphantxs,getrawaddrman,estimatesmartfee
           rpcauth=rpc-extractor:${CONSTANTS.RPC_EXTRACTOR_RPC_AUTH}
         ''}
         ${optionalString (config.peer-observer.node.bitcoind.banlistScript != null) ''
