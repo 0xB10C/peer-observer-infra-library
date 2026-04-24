@@ -30,15 +30,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1776844078,
-        "narHash": "sha256-ayDb88X8U6QyOqlWQnH+FeMr0SUY4Aqw7rKtYzI95uA=",
+        "lastModified": 1777019649,
+        "narHash": "sha256-kfRQ0/E9ozngJZ439tXZQRRBkXa32j1bhd73jfBb5+k=",
         "owner": "0xb10c",
         "repo": "nix",
-        "rev": "4e62f64405f73672a2f74e6bdf06c5beb8cebdbe",
+        "rev": "33cd754ce70c573b0d2afefce665ea3a07f11ac7",
         "type": "github"
       },
       "original": {
         "owner": "0xb10c",
+        "ref": "2026-04-peer-observer-pr400-prometheus-anomalydetection",
         "repo": "nix",
         "type": "github"
       }
