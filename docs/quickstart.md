@@ -32,6 +32,15 @@ The dev shell (`nix develop`) provides all other required tools: `age`, `wiregua
 
 Smaller instances may work for testing or low-traffic deployments.
 
+### What to Expect
+
+Run the commands below from your local machine (not on the servers), unless stated otherwise. Steps 4 and 6 deploy via SSH using `nixos-anywhere` and `nixos-rebuild-ng`, which install a fresh NixOS image on the target server. Anything previously on those servers will be wiped.
+
+- **Steps 1-3** describe the infrastructure in your flake (no remote changes yet).
+- **Step 4** installs NixOS on the remote servers. This is destructive, so back up anything you care about.
+- **Step 5** generates WireGuard keys and Grafana secrets locally.
+- **Step 6** deploys peer-observer services to the now-NixOS servers.
+
 ## Step 1: Initialize Your Repository
 
 ```bash
@@ -47,7 +56,7 @@ This gives you:
 ├── flake.nix          # Nix flake definition
 ├── infra.nix          # Your infrastructure configuration
 ├── justfile           # Automation recipes (deploy, secrets, etc.)
-├── hosts/             # Host-specific configs (disko, hardware)
+├── hosts/             # Empty. Per-host disko/hardware configs land here in Step 3
 └── secrets/
     ├── secrets.nix    # Agenix encryption recipients
     └── .gitignore
@@ -74,21 +83,18 @@ Edit `infra.nix` and address the `FIXME` comments. The file is well-documented w
 
 > **Note**: All hosts start with `setup = true`. This enables initial deployment without secrets — services that require secrets (WireGuard, etc.) are skipped. You'll set `setup = false` in Step 6 after secrets are configured.
 
-See [Configuration Reference](configuration.md) for all available options.
+See the [Configuration Concepts](configuration.md) and the [auto-generated options reference](https://peer-observer.github.io/infra-library/) for full details.
 
 ## Step 3: Set Up Disk Partitioning
 
-Create disko configuration for each host:
+Drop a generic [disko.nix](https://github.com/peer-observer/infra-demo/blob/master/hosts/hal/disko.nix) (BIOS/UEFI auto-detect) into a per-host directory under `hosts/`. `wget -P` creates the target directory if it doesn't exist:
 
 ```bash
-mkdir -p hosts/node01
-mkdir -p hosts/web01  # if deploying a webserver
+wget https://raw.githubusercontent.com/peer-observer/infra-demo/refs/heads/master/hosts/hal/disko.nix -P hosts/node01
+wget https://raw.githubusercontent.com/peer-observer/infra-demo/refs/heads/master/hosts/hal/disko.nix -P hosts/web01  # if deploying a webserver
 ```
 
-Copy the [disko.nix file from the infra-demo](https://github.com/peer-observer/infra-demo/blob/master/hosts/hal/disko.nix) into each host directory (e.g., `hosts/node01/disko.nix`, `hosts/web01/disko.nix`).
-
-You must then change the `id` in `let` bindings at the top of the file for each host to match the target server's disk identifier:
-- `id` — the disk identifier. Run `lsblk -o NAME,SIZE,TYPE,ID-LINK -d` on the target server and use the `ID-LINK` value (e.g., `scsi-0QEMU_QEMU_HARDDISK_...`)
+Then change the `id` in the `let` bindings at the top of each `disko.nix` to match the target server's disk identifier. Run `lsblk -o NAME,SIZE,TYPE,ID-LINK -d` on the target server and use the `ID-LINK` value (e.g., `scsi-0QEMU_QEMU_HARDDISK_...`).
 
 ## Step 4: Initial Deployment
 
@@ -120,7 +126,7 @@ The server will reboot. You can then SSH as your admin user:
 ssh node01  # or ssh <username>@<server-ip>
 ```
 
-> **Tip**: Configure `~/.ssh/config` with your server names for easier access.
+> **Tip**: Configure `~/.ssh/config` with your server names. This lets you `ssh node01` instead of `ssh <user>@<ip>`, and lets the deploy commands in Step 6 and Ongoing Maintenance use the short form (`just deploy node01`).
 
 Repeat for each host (web01 if deploying a webserver).
 
@@ -130,6 +136,7 @@ See [Secrets Management](secrets.md) for detailed instructions on how secrets wo
 
 ```bash
 # 1. Generate your age key (one-time)
+mkdir -p ~/.age
 age-keygen -o ~/.age/key.txt
 # Note the public key (starts with "age1...")
 
@@ -156,14 +163,27 @@ just gen-grafana-password web01  # if deploying a webserver
 **Using justfile:**
 ```bash
 just deploy node01
-just deploy web01  # if deploying a webserver
+just deploy web01   # if deploying a webserver
+
+# Pass an explicit SSH target as a second argument when needed:
+# just deploy node01 alice@192.0.2.10
 ```
+
+The `deploy` recipe takes two arguments: `host` (the flake output name, must match what's in `infra.nix`) and `target` (the SSH destination). When you pass only one, `target` defaults to `host`, which works if `node01` / `web01` resolve via `~/.ssh/config` (or `/etc/hosts`) per the tip in Step 4.
+
+You'll want to pass an explicit target when:
+- you don't have a `~/.ssh/config` alias yet and want to deploy by IP, or
+- the flake output name and SSH alias intentionally differ (bastions, multi-environment naming, etc.).
 
 **Without justfile:**
 ```bash
-nixos-rebuild switch --flake .#node01 --target-host node01 --build-host node01 --sudo
-nixos-rebuild switch --flake .#web01 --target-host web01 --build-host web01 --sudo  # if deploying a webserver
+nixos-rebuild-ng switch --flake .#node01 --target-host node01 --build-host node01 --sudo
+nixos-rebuild-ng switch --flake .#web01 --target-host web01 --build-host web01 --sudo   # if deploying a webserver
 ```
+
+Replace `node01` / `web01` after `--target-host` and `--build-host` with `<user>@<server-ip>` if you don't have an SSH config alias.
+
+> **Note**: `nixos-rebuild-ng` is a rewrite of `nixos-rebuild` and ships in the dev shell. We use it because the original `nixos-rebuild` is known to be problematic on some platforms (e.g. macOS).
 
 ## What's Running
 
@@ -206,8 +226,8 @@ just rekey  # Re-encrypt secrets after changing keys in secrets.nix
 
 **Without justfile:**
 ```bash
-nixos-rebuild switch --flake .#node01 --target-host node01 --build-host node01 --sudo
-nixos-rebuild switch --flake .#web01 --target-host web01 --build-host web01 --sudo
+nixos-rebuild-ng switch --flake .#node01 --target-host node01 --build-host node01 --sudo
+nixos-rebuild-ng switch --flake .#web01 --target-host web01 --build-host web01 --sudo
 cd secrets && agenix -r  # Re-encrypt secrets
 ```
 
@@ -215,7 +235,7 @@ Run `just` to see all available commands.
 
 ### Alternative Deployment Method
 
-If the native `nixos-rebuild --target-host` approach fails (network issues, SSH configuration problems, or building from macOS where cross-compilation isn't supported), you can copy your configuration to the host and build locally:
+If the native `nixos-rebuild-ng --target-host` approach fails (network issues, SSH configuration problems, or remote builds timing out), you can copy your configuration to the host and build locally:
 
 ```bash
 # 1. Copy configuration to the host
@@ -225,13 +245,11 @@ rsync -avz --delete --exclude='.git' . node01:/tmp/nixos-config/
 ssh node01 "cd /tmp/nixos-config && sudo nixos-rebuild switch --flake .#node01"
 ```
 
-This approach:
-- Works from any OS (including macOS)
-- Avoids cross-compilation issues
-- Useful when `--build-host` remote builds timeout or fail
+This avoids any client-side build, which is helpful when `--build-host` remote builds time out or when SSH connectivity from the deploying host is flaky.
 
 ## Next Steps
 
-- [Configuration Reference](configuration.md) - All available options
+- [Configuration Concepts](configuration.md) - Conceptual overview of `infra.nix`
+- [Configuration Options Reference](https://peer-observer.github.io/infra-library/) - Auto-generated, always up to date
 - [Secrets Management](secrets.md) - Understanding keys and encryption
 - [Troubleshooting](troubleshooting.md) - Common issues

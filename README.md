@@ -53,7 +53,8 @@ and follow the [Quick Start Guide](docs/quickstart.md) for a full setup walkthro
 ## Documentation
 
 - [Architecture](docs/architecture.md) - Components, data flow, and security boundaries
-- [Configuration Reference](docs/configuration.md) - All infra.nix options
+- [Configuration Concepts](docs/configuration.md) - Conceptual overview of `infra.nix`
+- [Configuration Options Reference](https://peer-observer.github.io/infra-library/) - Complete option reference, auto-generated and always up to date
 - [Secrets Management](docs/secrets.md) - Agenix setup and key management
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 

@@ -17,18 +17,18 @@
 default:
     @just --list
 
-# Deploy configuration to a host
-deploy host:
-    nixos-rebuild switch \
+# Deploy `host` (flake output) to `target` (SSH destination, defaults to host)
+deploy host target=host:
+    nixos-rebuild-ng switch \
         --flake .#{{host}} \
-        --target-host {{host}} \
-        --build-host {{host}} \
+        --target-host {{target}} \
+        --build-host {{target}} \
         --sudo \
         --show-trace
 
 # Build a VM for local testing
 build-vm host:
-    nixos-rebuild build-vm \
+    nixos-rebuild-ng build-vm \
         --flake .#{{host}} \
         --show-trace
 

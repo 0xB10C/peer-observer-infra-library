@@ -1,4 +1,4 @@
-# Configuration Reference
+# Configuration Concepts
 
 This page describes the conceptual structure and behaviour of `infra.nix` configuration. For a complete, always-up-to-date option reference (types, defaults, examples), see the **[auto-generated option reference](https://peer-observer.github.io/infra-library)**.
 

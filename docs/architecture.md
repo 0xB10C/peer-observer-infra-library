@@ -26,7 +26,7 @@ Each node is a self-contained monitoring unit running:
 
 Instrumented Bitcoin Core node that connects to the Bitcoin P2P network as a passive observer.
 - Port 8333 (public, mainnet) - accepts inbound connections from the Bitcoin network. Port varies by network: 18333 (test/testnet3), 48333 (testnet4), 38333 (signet), 18444 (regtest)
-- RPC interface bound to `127.0.0.1` by default; additionally bound to the WireGuard interface when fork-observer or addrman-observer need remote RPC access (see [Configuration Reference](configuration.md))
+- RPC interface bound to `127.0.0.1` by default; additionally bound to the WireGuard interface when fork-observer or addrman-observer need remote RPC access (see [Configuration Concepts](configuration.md))
 - Built with USDT tracepoints enabled for eBPF monitoring
 - Pruned by default (4000 MiB)
 
@@ -72,7 +72,7 @@ Reverse proxy with Let's Encrypt TLS that routes requests to internal services. 
 
 #### Services
 
-All services bind to localhost and are proxied through nginx. See [Configuration Reference](configuration.md) for webserver options.
+All services bind to localhost and are proxied through nginx. See [Configuration Concepts](configuration.md) for webserver options.
 
 | Service | Description |
 |---------|-------------|
@@ -94,7 +94,7 @@ Encrypted VPN where each node peers with the webserver(s), but nodes do not peer
 
 #### Bitcoin P2P
 
-Each node connects to the Bitcoin network independently via port 8333 (mainnet). Optionally routes through Tor, I2P, or CJDNS for anonymous connections (see [Configuration Reference](configuration.md)).
+Each node connects to the Bitcoin network independently via port 8333 (mainnet). Optionally routes through Tor, I2P, or CJDNS for anonymous connections (see [Configuration Concepts](configuration.md)).
 
 ## Security Boundaries
 

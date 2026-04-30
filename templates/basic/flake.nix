@@ -52,7 +52,7 @@
           default = pkgs.mkShell {
             buildInputs = [
               pkgs.nixos-anywhere
-              pkgs.nixos-rebuild
+              pkgs.nixos-rebuild-ng
               pkgs.just
               pkgs.wireguard-tools
               pkgs.age
@@ -64,11 +64,12 @@
               # Shell functions (alternative to justfile recipes)
               deploy() {
                 local host=$1
-                echo "deploying $host..."
-                nixos-rebuild switch \
+                local target=''${2:-$host}
+                echo "deploying $host (target $target)..."
+                nixos-rebuild-ng switch \
                 --flake .#$host \
-                --target-host $host \
-                --build-host $host \
+                --target-host $target \
+                --build-host $target \
                 --sudo \
                 --show-trace
               }
@@ -76,7 +77,7 @@
               build-vm() {
                 local host=$1
                 echo "building $host..."
-                nixos-rebuild build-vm \
+                nixos-rebuild-ng build-vm \
                 --flake .#$host \
                 --show-trace
               }
@@ -85,8 +86,8 @@
 
               echo ""
               echo "Run 'just' to see available commands, or use these shell functions:"
-              echo "  deploy <host>   - Deploy configuration to host"
-              echo "  build-vm <host> - Build VM for local testing"
+              echo "  deploy <host> [target]   - Deploy configuration (target defaults to <host>)"
+              echo "  build-vm <host>          - Build VM for local testing"
               echo ""
             '';
           };
