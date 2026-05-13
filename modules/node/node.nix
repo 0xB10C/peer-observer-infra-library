@@ -359,6 +359,10 @@ in
           enable = true;
           websocketAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}";
         };
+
+        alerts = {
+          enable = true;
+        };
       };
     };
 
