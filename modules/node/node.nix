@@ -124,6 +124,26 @@ in
           };
         };
       };
+      tools = {
+        archiver = {
+          enable = lib.mkEnableOption "the peer-observer archiver";
+
+          baseName = mkOption {
+            type = types.str;
+            default = null;
+            example = "demo-peer-observer";
+            description = "Base name for archive files (e.g., 'mainnet' -> '[node-name]-mainnet.<timestamp>.bin.zst')";
+          };
+
+          compressionLevel = mkOption {
+            type = types.ints.between 0 22;
+            default = 9;
+            example = 3;
+            description = "Zstd compression level (0 = no compression, 1-22)";
+          };
+
+        };
+      };
 
       addrLookup = lib.mkEnableOption "the peer-observer address-connectivity lookup tool. This reaches out to nodes on the network and might leak IP addresses.";
 
@@ -362,6 +382,13 @@ in
 
         alerts = {
           enable = true;
+        };
+
+        archiver = {
+          enable = config.peer-observer.node.peer-observer.tools.archiver.enable;
+          outputDir = "/data/peer-observer-archives/";
+          baseName = "${config.peer-observer.node.peer-observer.tools.archiver.baseName}-${config.peer-observer.base.name}";
+          compressionLevel = config.peer-observer.node.peer-observer.tools.archiver.compressionLevel;
         };
       };
     };

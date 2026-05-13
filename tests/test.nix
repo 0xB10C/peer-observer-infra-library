@@ -269,6 +269,11 @@ pkgs.testers.runNixOSTest {
     node1.wait_for_unit("peer-observer-tool-websocket.service")
     node2.wait_for_unit("peer-observer-tool-websocket.service")
 
+    node1.wait_for_unit("peer-observer-tool-alerts.service")
+    node2.wait_for_unit("peer-observer-tool-alerts.service")
+
+    node1.wait_for_unit("peer-observer-tool-archiver.service")
+
     wait_until_nodes_connected()
 
     check_bitcoind_rpc_connectivity()
