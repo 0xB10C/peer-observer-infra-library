@@ -116,7 +116,34 @@ stdenv.mkDerivation rec {
   # -fno-optimize-sibling-calls: Avoid tail-call elimination
   preConfigure = ''
     export CXXFLAGS="$CXXFLAGS -ggdb3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
+    ${lib.optionalString (sanitizersAddressUndefined || sanitizersThread) ''
+      # Abort the process on the first sanitizer error instead of printing and
+      # continuing (UBSan's default). This is a compile-time guarantee, so the
+      # binary will always crash on sanitizer errors regardless of env vars.
+      export CXXFLAGS="$CXXFLAGS -fno-sanitize-recover=all"
+      export CFLAGS="$CFLAGS -fno-sanitize-recover=all"
+    ''}
   '';
+
+  # Copy Bitcoin Core's suppression files so that the systemd service can
+  # reference them at runtime via ASAN_OPTIONS/UBSAN_OPTIONS/TSAN_OPTIONS.
+  postInstall =
+    lib.optionalString (sanitizersAddressUndefined || sanitizersThread) ''
+      mkdir -p $out/share/sanitizer-suppressions
+      cp ${src}/test/sanitizer_suppressions/lsan $out/share/sanitizer-suppressions/lsan
+      cp ${src}/test/sanitizer_suppressions/ubsan $out/share/sanitizer-suppressions/ubsan
+      cp ${src}/test/sanitizer_suppressions/tsan $out/share/sanitizer-suppressions/tsan
+    ''
+    + lib.optionalString sanitizersAddressUndefined ''
+      nm -D $out/bin/bitcoind | grep -q '__asan_init' \
+        || { echo "error: __asan_init not found — ASan is not linked"; exit 1; }
+      nm -D $out/bin/bitcoind | grep -q '__ubsan_handle.*_abort' \
+        || { echo "error: no __ubsan_handle_*_abort symbols — UBSan not linked or -fno-sanitize-recover=all not in effect"; exit 1; }
+    ''
+    + lib.optionalString sanitizersThread ''
+      nm -D $out/bin/bitcoind | grep -q '__tsan_init' \
+        || { echo "error: __tsan_init not found — TSan is not linked"; exit 1; }
+    '';
 
   doCheck = false;
   enableParallelBuilding = true;

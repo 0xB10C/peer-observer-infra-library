@@ -176,6 +176,23 @@ in
     # See https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Restart=
     systemd.services.bitcoind-mainnet.serviceConfig.Restart = lib.mkForce "no";
 
+    # When running a sanitizer-enabled bitcoind, configure the sanitizer runtimes
+    # with Bitcoin Core's own suppression lists and reporting options.
+    #
+    # ASan does not need halt_on_error — it exits on the first error by design.
+    # UBSan and TSan use halt_on_error=1, but crash behavior is also guaranteed
+    # at compile time via -fno-sanitize-recover=all (see pkgs/bitcoind/default.nix).
+    # Suppressions avoid false positives in dependencies and intentional unsigned
+    # overflows in Bitcoin Core's crypto code.
+    systemd.services.bitcoind-mainnet.environment =
+      lib.optionalAttrs config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined {
+        LSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package}/share/sanitizer-suppressions/lsan";
+        UBSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package}/share/sanitizer-suppressions/ubsan:print_stacktrace=1:halt_on_error=1:report_error_type=1";
+      }
+      // lib.optionalAttrs config.peer-observer.node.bitcoind.package.sanitizersThread {
+        TSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package}/share/sanitizer-suppressions/tsan:halt_on_error=1:second_deadlock_stack=1";
+      };
+
     # for backwards compatability reasons, this is called "mainnet" and has to stay this way for now.
     # Even if we run a signet/testnet/regtest node..
     services.bitcoind."mainnet" = {
