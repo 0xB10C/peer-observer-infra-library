@@ -25,6 +25,9 @@
   gitCommit ? "6574cb40869b96b9ffc79c19dc8f4e467d60f321", # v31.0
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
+  # by default, symlink the bitcoin-node binary into the location of
+  # bitcoind. The original bitcoind binary is renamed to bitcoind_.
+  symlinkBitcoinNode ? true,
 }:
 
 # ensure either thread or address+undefined sanitizers are enabled
@@ -50,6 +53,7 @@ stdenv.mkDerivation rec {
       gitURL
       sanitizersAddressUndefined
       sanitizersThread
+      symlinkBitcoinNode
       ;
   };
 
@@ -116,6 +120,13 @@ stdenv.mkDerivation rec {
   # -fno-optimize-sibling-calls: Avoid tail-call elimination
   preConfigure = ''
     export CXXFLAGS="$CXXFLAGS -ggdb3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
+  '';
+
+  # This is required as the NixOS bitcoind service only supports running
+  # /bin/bitcoind and we can't choose to run /libexec/bitcoin-node.
+  postInstall = lib.optional symlinkBitcoinNode ''
+    mv $out/bin/bitcoind $out/bin/bitcoind_
+    ln -s $out/libexec/bitcoin-node $out/bin/bitcoind
   '';
 
   doCheck = false;

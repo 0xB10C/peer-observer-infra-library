@@ -47,7 +47,10 @@ in
       bitcoind = {
         chain = "regtest";
         # for good measure, use a custom bitcoind binary here.
-        package = peer-observer-infra-library.mkCustomBitcoind { sanitizersAddressUndefined = true; };
+        package = peer-observer-infra-library.mkCustomBitcoind {
+          sanitizersAddressUndefined = true;
+          symlinkBitcoinNode = true;
+        };
         net = {
           useTor = true;
           useI2P = true;

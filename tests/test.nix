@@ -78,6 +78,9 @@ pkgs.testers.runNixOSTest {
       assert_log("peerobserver_rpc_mempoolinfo_memory_max 300000000", output)
       assert_log("peerobserver_rpc_peer_info_num_peers 1", output)
 
+      print("check that the ipc-extractor works..")
+      assert_log("peerobserver_ipc_block_tip_height 20", output)
+
     def check_fork_observer():
       web1.wait_for_unit("fork-observer.service")
       print("wait for fork-observer to do its first getchaintips query..")
@@ -138,7 +141,7 @@ pkgs.testers.runNixOSTest {
       print("mine a few blocks on node2")
       command = bitcoin_cli + " generatetoaddress 20 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
       node2.succeed(command)
-      
+
       # give nodes a bit of time to sync
       time.sleep(4)
 
@@ -173,7 +176,7 @@ pkgs.testers.runNixOSTest {
               assert_log("HTTP/1.1 101 Switching Protocols", output)
             case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}":
               # Bitcoin Core RPC doesn't like HEAD requests, but that's fine as it means: Bitcoin Core is reachable
-              assert_log("HTTP/1.1 405 Method Not Allowed", output)  
+              assert_log("HTTP/1.1 405 Method Not Allowed", output)
             case _:
               assert_log("HTTP/1.1 200 OK", output)
 
@@ -262,6 +265,9 @@ pkgs.testers.runNixOSTest {
     node1.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_PORT})
     node2.wait_for_unit("peer-observer-p2p-extractor.service")
     node2.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_PORT})
+
+    node1.wait_for_unit("peer-observer-ipc-extractor.service")
+    node2.wait_for_unit("peer-observer-ipc-extractor.service")
 
     node1.wait_for_unit("peer-observer-tool-metrics.service")
     node2.wait_for_unit("peer-observer-tool-metrics.service")
