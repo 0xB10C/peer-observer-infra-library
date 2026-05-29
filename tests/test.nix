@@ -75,7 +75,7 @@ pkgs.testers.runNixOSTest {
       assert_log("peerobserver_validation_block_connected_latest_height 20", output)
 
       print("check that the rpc-extractor works..")
-      assert_log("peerobserver_rpc_mempoolinfo_memory_max 300000000", output)
+      assert_log("peerobserver_rpc_blockchaininfo_pruned 1", output)
       assert_log("peerobserver_rpc_peer_info_num_peers 1", output)
 
     def check_fork_observer():
