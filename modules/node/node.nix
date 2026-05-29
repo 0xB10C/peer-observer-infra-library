@@ -102,6 +102,16 @@ in
         };
         printToConsole = lib.mkEnableOption "Wether to print the debug logs to console (i.e. systemd) too. Disabled by default, but can be useful for testing.";
       };
+
+      addrmanSnapshots = {
+        enable = lib.mkEnableOption "periodic addrman snapshots using getrawaddrman. Snapshots are compressed with zstd and stored daily.";
+        snapshotsToKeep = lib.mkOption {
+          type = lib.types.ints.u16;
+          description = "Number of daily snapshots to keep on the server before deleting them.";
+          default = 30;
+          example = 7;
+        };
+      };
     };
 
     fork-observer = {
@@ -222,6 +232,13 @@ in
           # rpc-extractor (peer-observer) user
           rpcwhitelist=rpc-extractor:getpeerinfo,getmempoolinfo,uptime,getnettotals,getaddrmaninfo,getmemoryinfo,getchaintxstats,getnetworkinfo,getblockchaininfo,getorphantxs,getrawaddrman
           rpcauth=rpc-extractor:${CONSTANTS.RPC_EXTRACTOR_RPC_AUTH}
+        ''}
+        ${optionalString config.peer-observer.node.bitcoind.addrmanSnapshots.enable ''
+          server=1
+
+          # addrman-snapshot user
+          rpcwhitelist=addrman-snapshot:getrawaddrman
+          rpcauth=addrman-snapshot:${CONSTANTS.ADDRMAN_SNAPSHOTS_RPC_AUTH}
         ''}
         ${optionalString (config.peer-observer.node.bitcoind.banlistScript != null) ''
           server=1
@@ -448,6 +465,40 @@ in
       serviceConfig.Type = "oneshot";
     };
 
+    systemd.tmpfiles.rules = mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable [
+      "d ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR} 775 ${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group} -"
+    ];
+
+    systemd.services."addrman-snapshot" =
+      mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable
+        {
+          after = [ "bitcoind-mainnet.service" ];
+          script = ''
+            set -e
+            shopt -s expand_aliases
+            alias bitcoin-cli="${config.services.bitcoind.mainnet.package}/bin/bitcoin-cli -rpcuser=addrman-snapshot -rpcpassword=${CONSTANTS.ADDRMAN_SNAPSHOTS_RPC_PASSWORD}"
+            DATE=$(date +%Y%m%d)
+            SNAPSHOT="${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/addrman-$DATE-${config.peer-observer.base.name}.json.zst"
+            bitcoin-cli getrawaddrman | ${pkgs.zstd}/bin/zstd -19 -o "$SNAPSHOT"
+            find ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR} -name "addrman-*.json.zst" \
+              -mtime +${toString config.peer-observer.node.bitcoind.addrmanSnapshots.snapshotsToKeep} \
+              -delete
+          '';
+          serviceConfig = {
+            Type = "oneshot";
+          };
+        };
+
+    systemd.timers."addrman-snapshot" =
+      mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable
+        {
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = "daily";
+            Persistent = true;
+          };
+        };
+
     services.logrotate = {
       settings = {
         "${config.services.bitcoind."mainnet".dataDir}/debug.log" =
@@ -515,6 +566,18 @@ in
               limit_rate 500k; # kB/s
             '';
           };
+
+          # access to addrman snapshots the node hasn't deleted yet.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS}" =
+            mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable
+              {
+                alias = "${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/";
+                extraConfig = ''
+                  autoindex on;
+                  autoindex_exact_size off;
+                  limit_rate 500k; # kB/s
+                '';
+              };
 
           # access to the peer-observer websocket tool
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}" = {

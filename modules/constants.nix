@@ -6,6 +6,7 @@ rec {
   # Paths on the node's nginx where the proxied endpoint can be found.
   NODE_TO_WEBSERVER_PATH_BITCOIND_RPC = "/"; # RPC needs to be / ...
   NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs/";
+  NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS = "/addrman-snapshots/";
   NODE_TO_WEBSERVER_PATH_PARCA_SERVER = "/parca-server/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS = "/peer-observer-rpc-extractor-metrics/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL = "/peer-observer-metrics-tool/";
@@ -19,6 +20,7 @@ rec {
   NODE_TO_WEBSERVER_PATHS = [
     NODE_TO_WEBSERVER_PATH_BITCOIND_RPC
     NODE_TO_WEBSERVER_PATH_DEBUG_LOGS
+    NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS
     NODE_TO_WEBSERVER_PATH_PARCA_SERVER
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL
@@ -57,6 +59,9 @@ rec {
 
   # Place where logrotate should put the debug.log's
   DEBUG_LOGS_DIR = "/data/debug-logs";
+
+  # Place where addrman snapshots are stored
+  ADDRMAN_SNAPSHOTS_DIR = "/data/addrman-snapshots";
 
   # A UDP port exposed by the web hosts for nodes to connect to them.
   WIREGUARD_INTERFACE_PORT = 51820;
@@ -99,6 +104,12 @@ rec {
   # The RPC interface is only reachable via the wireguard interface.
   BANLIST_RPC_PASSWORD = "eQu4Iqu3aid8Bujool0xioj2auM0leeGh9voekei";
   BANLIST_RPC_RPC_AUTH = "a2c604d2857fbc90e92996c75fbf9647$90a59f24f29c744ca4487ee9d61047f52657f54849cab6da4a55510cd58d3d73";
+
+  # This 'password' is hardcoded and public and that's fine here, as
+  # the password is not meant to secure the RPC interface.
+  # The RPC interface is only reachable via the wireguard interface.
+  ADDRMAN_SNAPSHOTS_RPC_PASSWORD = "rOojUZh_XymjIuASxRWNV8lBD3udjhTEKWwwpGeE1h0";
+  ADDRMAN_SNAPSHOTS_RPC_AUTH = "05c35f6eea46368799c30528363bb189$b17bd6e3321072ee73cafe6eada7f732f71c9a3e60b35eab9d13fd9b77c62d59";
 
   GRAFANA_PORT = 9321;
 
