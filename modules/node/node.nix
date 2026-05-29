@@ -133,6 +133,11 @@ in
             default = true;
           };
         };
+        ipc = {
+          enable = lib.mkEnableOption "the peer-observer ipc-extractor" // {
+            default = true;
+          };
+        };
       };
       tools = {
         archiver = {
@@ -225,6 +230,9 @@ in
 
         ${optionalString (config.services.peer-observer.extractors.p2p.enable) ''
           addnode=${config.services.peer-observer.extractors.p2p.p2pAddress}
+        ''}
+        ${optionalString (config.services.peer-observer.extractors.ipc.enable) ''
+          ipcbind=unix:/run/bitcoind-mainnet/node.sock
         ''}
         ${optionalString (config.services.peer-observer.extractors.rpc.enable) ''
           server=1
@@ -353,6 +361,15 @@ in
       };
     };
 
+    assertions = [
+      {
+        assertion =
+          config.peer-observer.node.peer-observer.extractors.ipc.enable
+          == config.peer-observer.node.bitcoind.package.symlinkBitcoinNode;
+        message = "ipc-extractor enabled, but bitcoin-node not symlinked on ${config.peer-observer.base.name}";
+      }
+    ];
+
     services.peer-observer = {
       extractors = {
         dependOn = "bitcoind-mainnet";
@@ -378,6 +395,10 @@ in
         log = {
           enable = config.peer-observer.node.peer-observer.extractors.logs.enable;
           debugLog = "/var/lib/bitcoind-mainnet/debug.log";
+        };
+        ipc = {
+          enable = config.peer-observer.node.peer-observer.extractors.ipc.enable;
+          ipcSocket = "/run/bitcoind-mainnet/node.sock";
         };
       };
 
