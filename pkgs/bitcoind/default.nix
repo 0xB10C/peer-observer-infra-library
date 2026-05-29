@@ -51,6 +51,7 @@ stdenv.mkDerivation rec {
       sanitizersAddressUndefined
       sanitizersThread
       ;
+    sanitizerSuppressionsDir = "${src}/test/sanitizer_suppressions";
   };
 
   src = builtins.fetchGit {

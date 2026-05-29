@@ -138,7 +138,7 @@ pkgs.testers.runNixOSTest {
       print("mine a few blocks on node2")
       command = bitcoin_cli + " generatetoaddress 20 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
       node2.succeed(command)
-      
+
       # give nodes a bit of time to sync
       time.sleep(4)
 
@@ -173,7 +173,7 @@ pkgs.testers.runNixOSTest {
               assert_log("HTTP/1.1 101 Switching Protocols", output)
             case "${CONSTANTS.NODE_TO_WEBSERVER_PATH_BITCOIND_RPC}":
               # Bitcoin Core RPC doesn't like HEAD requests, but that's fine as it means: Bitcoin Core is reachable
-              assert_log("HTTP/1.1 405 Method Not Allowed", output)  
+              assert_log("HTTP/1.1 405 Method Not Allowed", output)
             case _:
               assert_log("HTTP/1.1 200 OK", output)
 
@@ -246,6 +246,28 @@ pkgs.testers.runNixOSTest {
       print(f"{command}: {output}")
       assert_log("HTTP/1.1 200 OK", output)
 
+    def check_sanitizer_suppressions():
+      print("checking sanitizer env vars are set on node1 bitcoind (sanitizersAddressUndefined=true)")
+      output = node1.succeed("systemctl show bitcoind-mainnet.service --property=Environment")
+      assert_log("ASAN_OPTIONS=", output)
+      assert_log("LSAN_OPTIONS=", output)
+      assert_log("UBSAN_OPTIONS=", output)
+      assert_log("halt_on_error=1", output)
+      assert_log("print_stacktrace=1", output)
+      assert_log("abort_on_error=1", output)
+      assert_log("TSAN_OPTIONS=", output, negated=True)
+
+      print("checking LimitCORE=infinity is set on node1 bitcoind (sanitizersAddressUndefined=true)")
+      output = node1.succeed("systemctl show bitcoind-mainnet.service --property=LimitCORE")
+      assert_log("LimitCORE=infinity", output)
+
+      print("checking no sanitizer env vars are set on node2 bitcoind (no sanitizers)")
+      output = node2.succeed("systemctl show bitcoind-mainnet.service --property=Environment")
+      assert_log("ASAN_OPTIONS=", output, negated=True)
+      assert_log("LSAN_OPTIONS=", output, negated=True)
+      assert_log("UBSAN_OPTIONS=", output, negated=True)
+      assert_log("TSAN_OPTIONS=", output, negated=True)
+
     start_all()
 
     check_for_wireguard()
@@ -256,6 +278,8 @@ pkgs.testers.runNixOSTest {
     web2.wait_for_unit("multi-user.target")
 
     check_parca()
+
+    check_sanitizer_suppressions()
 
     check_node_webserver_interface()
 
@@ -268,6 +292,13 @@ pkgs.testers.runNixOSTest {
 
     node1.wait_for_unit("bitcoind-mainnet.service")
     node2.wait_for_unit("bitcoind-mainnet.service")
+
+    print("verifying sanitizer env vars are present in the running bitcoind process on node1")
+    pid = node1.succeed("systemctl show bitcoind-mainnet.service --property=MainPID --value").strip()
+    environ = node1.succeed(f"cat /proc/{pid}/environ | tr '\\0' '\\n'")
+    assert_log("ASAN_OPTIONS=", environ)
+    assert_log("LSAN_OPTIONS=", environ)
+    assert_log("UBSAN_OPTIONS=", environ)
 
     check_bitcoind_p2p_port_reachable()
 
