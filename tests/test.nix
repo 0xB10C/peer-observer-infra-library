@@ -222,6 +222,30 @@ pkgs.testers.runNixOSTest {
 
       print("all Prometheus remote-node scrape jobs correctly configured!")
 
+    def check_addrman_snapshots():
+      print("triggering addrman-snapshot.service on node1")
+      node1.succeed("systemctl start addrman-snapshot.service")
+
+      print("checking that a snapshot file was created in ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}")
+      output = node1.succeed("ls ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/addrman-*.json.zst")
+      print(f"snapshot files: {output}")
+
+      print("checking snapshot decompresses to valid addrman JSON (new/tried tables)")
+      output = node1.succeed(
+        "${pkgs.zstd}/bin/zstd -d -c $(ls ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/addrman-*.json.zst | head -1)"
+      )
+      assert_log('"new"', output)
+      assert_log('"tried"', output)
+
+      print("checking webserver can fetch an addrman snapshot from node1 via wireguard")
+      snapshot_name = node1.succeed(
+        "ls ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/addrman-*.json.zst | head -1 | xargs basename"
+      ).strip()
+      command = f"curl -s -I ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS}{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
     start_all()
 
     check_for_wireguard()
@@ -275,6 +299,8 @@ pkgs.testers.runNixOSTest {
     node1.wait_for_unit("peer-observer-tool-archiver.service")
 
     wait_until_nodes_connected()
+
+    check_addrman_snapshots()
 
     check_bitcoind_rpc_connectivity()
 

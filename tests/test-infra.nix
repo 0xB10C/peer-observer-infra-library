@@ -60,6 +60,10 @@ in
           logsToKeep = 2;
           printToConsole = true; # useful for debugging in tests
         };
+        addrmanSnapshots = {
+          enable = true;
+          snapshotsToKeep = 7;
+        };
         banlistScript = ''
           bitcoin-cli setban 162.218.65.0/24    add 31536000  # LinkingLion
           bitcoin-cli setban 209.222.252.0/24   add 31536000  # LinkingLion
@@ -103,6 +107,10 @@ in
         customPort = 12345;
         detailedLogging = {
           printToConsole = true; # useful for debugging in tests
+        };
+        addrmanSnapshots = {
+          enable = true;
+          snapshotsToKeep = 7;
         };
         extraConfig = ''
           addnode=node1:18444
