@@ -56,6 +56,7 @@ stdenv.mkDerivation rec {
       sanitizersThread
       symlinkBitcoinNode
       ;
+    sanitizerSuppressionsDir = "${src}/test/sanitizer_suppressions";
   };
 
   src = builtins.fetchGit {

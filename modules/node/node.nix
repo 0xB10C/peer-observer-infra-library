@@ -190,6 +190,35 @@ in
     # or restarting the whole host). Calling the "stop" RPC also causes the node to be NOT restarted.
     # See https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Restart=
     systemd.services.bitcoind-mainnet.serviceConfig.Restart = lib.mkForce "no";
+    systemd.services.bitcoind-mainnet.serviceConfig.LimitCORE = mkIf (
+      config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined
+      || config.peer-observer.node.bitcoind.package.sanitizersThread
+    ) "infinity";
+
+    # Raise systemd-coredump limits for sanitizer builds so dumps aren't
+    # silently truncated. Core dumps land in /var/lib/systemd/coredump/ and
+    # are accessible via `coredumpctl list / coredumpctl dump`.
+    systemd.coredump.extraConfig =
+      mkIf
+        (
+          config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined
+          || config.peer-observer.node.bitcoind.package.sanitizersThread
+        )
+        ''
+          ExternalSizeMax=infinity
+          ProcessSizeMax=infinity
+        '';
+
+    systemd.services.bitcoind-mainnet.environment = mkMerge [
+      (mkIf config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined {
+        ASAN_OPTIONS = "detect_leaks=1:abort_on_error=1:halt_on_error=1";
+        LSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package.sanitizerSuppressionsDir}/lsan:print_stacktrace=1:halt_on_error=1";
+        UBSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package.sanitizerSuppressionsDir}/ubsan:print_stacktrace=1:halt_on_error=1";
+      })
+      (mkIf config.peer-observer.node.bitcoind.package.sanitizersThread {
+        TSAN_OPTIONS = "suppressions=${config.peer-observer.node.bitcoind.package.sanitizerSuppressionsDir}/tsan:print_stacktrace=1:halt_on_error=1:second_deadlock_stack=1:verbosity=1";
+      })
+    ];
 
     # for backwards compatability reasons, this is called "mainnet" and has to stay this way for now.
     # Even if we run a signet/testnet/regtest node..
