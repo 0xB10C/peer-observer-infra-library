@@ -17,12 +17,13 @@
   # to avoid poking out as vXX.99 development builds or as release
   # candidate testers. This is useful when wanting to avoid detection
   # of the honey pot nodes.
-  fakeVersionMajor ? "30",
-  fakeVersionMinor ? "2",
+  fakeVersionMajor ? "31",
+  fakeVersionMinor ? "0",
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
-  gitBranch ? "31.x",
-  gitCommit ? "6574cb40869b96b9ffc79c19dc8f4e467d60f321", # v31.0
+  gitBranch ? "master",
+  # https://github.com/bitcoin/bitcoin/commit/1ea532e590cdc16b86436a2bc4f92d74082307f9
+  gitCommit ? "1ea532e590cdc16b86436a2bc4f92d74082307f9",
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
 }:
