@@ -420,6 +420,7 @@ in
       # We manually provision the grafana side.
       # (see "rendering" below)
       provisionGrafana = false;
+      settings.security.authToken = "library-peer-observer-renderer";
     };
 
     services.grafana = {
@@ -459,6 +460,7 @@ in
           # callback_url needs the "/monitoring" subpath!
           callback_url = "http://127.0.0.1:${toString CONSTANTS.GRAFANA_PORT}/monitoring";
           server_url = "http://127.0.0.1:${toString config.services.grafana-image-renderer.settings.service.port}/render";
+          renderer_token = "library-peer-observer-renderer";
         };
       };
       provision =
