@@ -439,6 +439,9 @@ in
           admin_password = "$__file{${config.age.secrets.grafana-admin-password.path}}";
           admin_user = config.peer-observer.web.grafana.admin_user;
           cookie_secure = true;
+          # This hardcodes the old NixOS Grafana secret key, as we don't really have anything sentitive
+          # in our database by default. YMMV.
+          secret_key = "SW2YcwTIb9zpOOhoPsMm";
         };
         # https://github.com/grafana/grafana/issues/54974#issuecomment-1787591644
         rbac = {
