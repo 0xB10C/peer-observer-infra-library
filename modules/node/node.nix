@@ -198,16 +198,16 @@ in
     # Raise systemd-coredump limits for sanitizer builds so dumps aren't
     # silently truncated. Core dumps land in /var/lib/systemd/coredump/ and
     # are accessible via `coredumpctl list / coredumpctl dump`.
-    systemd.coredump.extraConfig =
+    systemd.coredump.settings.Coredump =
       mkIf
         (
           config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined
           || config.peer-observer.node.bitcoind.package.sanitizersThread
         )
-        ''
-          ExternalSizeMax=infinity
-          ProcessSizeMax=infinity
-        '';
+        {
+          ExternalSizeMax = "infinity";
+          ProcessSizeMax = "infinity";
+        };
 
     systemd.services.bitcoind-mainnet.environment = mkMerge [
       (mkIf config.peer-observer.node.bitcoind.package.sanitizersAddressUndefined {
