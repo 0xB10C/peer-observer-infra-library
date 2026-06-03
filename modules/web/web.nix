@@ -502,7 +502,12 @@ in
       {
         enable = true;
         retentionTime = config.peer-observer.web.prometheus.retention;
-        scrapeConfigs = [
+        ruleFiles = lib.filter
+         (f: lib.hasSuffix ".yaml" (toString f) || lib.hasSuffix ".yml" (toString f))
+          (lib.filesystem.listFilesRecursive
+           "${config.peer-observer.base.b10c-pkgs.peer-observer}/prometheus/rules/"
+	);
+	scrapeConfigs = [
           # node scrape config:
           # on localhost
           {
