@@ -313,7 +313,7 @@ in
               extraConfig = "rewrite /websocket /websocket/ redirect;";
             };
             "/websocket/" = {
-              root = "${config.peer-observer.base.b10c-pkgs.peer-observer}/websocket-www/";
+              root = config.peer-observer.base.b10c-pkgs.peer-observer.websocket-www-pages;
               index = "index.html";
               tryFiles = "$uri $uri/index.html $uri/ =404";
               extraConfig = ''
@@ -490,7 +490,7 @@ in
               # dashboards shipped with the peer-observer metrics tool
               name = "peer-observer-metrics-tool";
               updateIntervalSeconds = 999999;
-              options.path = "${config.peer-observer.base.b10c-pkgs.peer-observer}/dashboards";
+              options.path = config.peer-observer.base.b10c-pkgs.peer-observer.metrics-dashboards;
               options.foldersFromFilesStructure = true;
             }
             # TODO: allow to supply extra dashboards
