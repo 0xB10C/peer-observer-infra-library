@@ -55,8 +55,7 @@ in
           useTor = true;
           useI2P = true;
           useASMap = true;
-          # CJDNS package is broken?
-          useCJDNS = false;
+          useCJDNS = true;
         };
         detailedLogging = {
           enable = true;
