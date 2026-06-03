@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-26.05";
     b10c-nix = {
-      url = "github:0xb10c/nix";
+      url = "github:0xb10c/nix?ref=2026-06-peer-observer-pr420";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     agenix = {

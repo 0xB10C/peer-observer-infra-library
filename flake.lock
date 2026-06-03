@@ -30,15 +30,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1780485911,
-        "narHash": "sha256-eAMTGBVveE16tBPcsejFtdGcrMRtxBnnlbDkIV6xVZM=",
+        "lastModified": 1780521541,
+        "narHash": "sha256-aRhJ3DfMzuoaI0CghUhSTWs8cgPgrXPse/FLhK9WdlE=",
         "owner": "0xb10c",
         "repo": "nix",
-        "rev": "4c8c085a630b4cea8df64035919c3a9fdbec0e91",
+        "rev": "9508d8f54ec6826641a55cba9954929be43768db",
         "type": "github"
       },
       "original": {
         "owner": "0xb10c",
+        "ref": "2026-06-peer-observer-pr420",
         "repo": "nix",
         "type": "github"
       }
