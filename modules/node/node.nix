@@ -427,6 +427,7 @@ in
         };
         ipc = {
           enable = config.peer-observer.node.peer-observer.extractors.ipc.enable;
+          metricsAddress = "127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_IPC_METRICS_PORT}";
           ipcSocket = "/run/bitcoind-mainnet/node.sock";
         };
       };
@@ -648,6 +649,11 @@ in
           # access to the peer-observer rpc-extractor metrics
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS}" = {
             proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_RPC_METRICS_PORT}/metrics";
+          };
+
+          # access to the peer-observer ipc-extractor metrics
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS}" = {
+            proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_IPC_METRICS_PORT}/metrics";
           };
 
           # access to the /metrics endpoint of the node-exporter tool.

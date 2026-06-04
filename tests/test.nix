@@ -314,7 +314,9 @@ pkgs.testers.runNixOSTest {
     node2.wait_for_unit("peer-observer-ebpf-extractor.service")
 
     node1.wait_for_unit("peer-observer-rpc-extractor.service")
+    node1.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_TOOL_RPC_METRICS_PORT})
     node2.wait_for_unit("peer-observer-rpc-extractor.service")
+    node2.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_TOOL_RPC_METRICS_PORT})
 
     node1.wait_for_unit("peer-observer-p2p-extractor.service")
     node1.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_PORT})
@@ -322,7 +324,9 @@ pkgs.testers.runNixOSTest {
     node2.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_EXTRACTOR_P2P_PORT})
 
     node1.wait_for_unit("peer-observer-ipc-extractor.service")
+    node1.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_TOOL_IPC_METRICS_PORT})
     node2.wait_for_unit("peer-observer-ipc-extractor.service")
+    node2.wait_for_open_port(${toString CONSTANTS.PEER_OBSERVER_TOOL_IPC_METRICS_PORT})
 
     node1.wait_for_unit("peer-observer-tool-metrics.service")
     node2.wait_for_unit("peer-observer-tool-metrics.service")
