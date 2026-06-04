@@ -87,7 +87,6 @@ in
         addrLookup = true;
       };
 
-      parca = true;
       samply-continuous-profiling = true;
 
       extraConfig = (testOnlySSHHostKeyExtraConfig "node1") // {
@@ -122,10 +121,7 @@ in
           addnode=node1:18444
         '';
       };
-
       peer-observer.addrLookup = true;
-      parca = true;
-
       extraConfig = (testOnlySSHHostKeyExtraConfig "node2") // {
         # extra memory needed for peer-observer extractor huge-msg table
         virtualisation.memorySize = 3072;

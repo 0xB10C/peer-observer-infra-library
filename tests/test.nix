@@ -169,6 +169,7 @@ pkgs.testers.runNixOSTest {
           if path == "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}":
             extra_args = "-H 'Connection: upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Key: peerobservertest' -H 'Sec-WebSocket-Version: 13'"
           command = f"curl -s -I -X GET {extra_args} {node}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}{path} || true"
+
           output = web1.succeed(command)
           print(f"{command}: {output}")
           match path:
@@ -179,12 +180,6 @@ pkgs.testers.runNixOSTest {
               assert_log("HTTP/1.1 405 Method Not Allowed", output)
             case _:
               assert_log("HTTP/1.1 200 OK", output)
-
-    def check_parca():
-      node1.wait_for_unit("parca-agent.service")
-      node1.wait_for_unit("parca-server.service")
-      node2.wait_for_unit("parca-agent.service")
-      node2.wait_for_unit("parca-server.service")
 
     def check_samply_continuous_profiling():
       print("waiting for bitcoind-profiling.service on node1")
@@ -217,6 +212,7 @@ pkgs.testers.runNixOSTest {
 
       print("verifying node2 (samply-continuous-profiling=false) has no profile files")
       node2.fail("ls /data/profiling/bitcoind-*.json.gz")
+
 
     def check_prometheus_scrape_config():
       """Verify each remote-node Prometheus scrape job uses the correct URL path
@@ -312,11 +308,10 @@ pkgs.testers.runNixOSTest {
     web1.wait_for_unit("multi-user.target")
     web2.wait_for_unit("multi-user.target")
 
-    check_parca()
-
     check_samply_continuous_profiling()
 
     check_sanitizer_suppressions()
+
 
     check_node_webserver_interface()
 
