@@ -126,7 +126,7 @@ let
               ${lib.optionalString host.peer-observer.addrLookup ''
                 <span class="badge text-bg-success">addr connectivity check</span>
               ''}
-              ${lib.optionalString (host.parca) ''
+              ${lib.optionalString host.samply-continuous-profiling ''
                 <span class="badge text-bg-success">continues profiling</span>
               ''}
             </p>
