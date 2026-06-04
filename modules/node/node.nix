@@ -165,6 +165,8 @@ in
     };
 
     parca = lib.mkEnableOption "parca.dev continues profiling on the node. This runs the parca-agent and the parca-server. The agent runs as root, so think about what that means for the host before you enable it.";
+
+    samply-continuous-profiling = lib.mkEnableOption "samply continuous CPU profiling of the bitcoind process. Writes one 24h-long, gzipped sample file per run to /data/profiling, restarting on exit. Runs as root to ptrace bitcoind.";
   };
 
   config = lib.mkIf (config.peer-observer.node.enable && !config.peer-observer.base.setup) {
@@ -576,6 +578,12 @@ in
         enable = true;
         server = "127.0.0.1:${toString CONSTANTS.PARCA_SERVER_PORT}";
       };
+    };
+
+    services.bitcoind-profiling = mkIf config.peer-observer.node.samply-continuous-profiling {
+      enable = true;
+      package = config.peer-observer.base.b10c-pkgs.samply;
+      nodeName = config.peer-observer.base.name;
     };
 
     services.nginx = {

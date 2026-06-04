@@ -186,6 +186,38 @@ pkgs.testers.runNixOSTest {
       node2.wait_for_unit("parca-agent.service")
       node2.wait_for_unit("parca-server.service")
 
+    def check_samply_continuous_profiling():
+      print("waiting for bitcoind-profiling.service on node1")
+      node1.wait_for_unit("bitcoind-profiling.service")
+
+      print("waiting for samply to produce a profile file in /data/profiling on node1")
+      # node1's extraConfig overrides the capture duration to 5s, so the first
+      # file should land within a few seconds of the service starting.
+      node1.wait_until_succeeds(
+        "ls /data/profiling/bitcoind-*-node1.json.gz",
+        timeout=120,
+      )
+
+      output = node1.succeed("ls -la /data/profiling/")
+      print(f"profile dir contents: {output}")
+
+      filename = node1.succeed(
+        "ls /data/profiling/bitcoind-*-node1.json.gz | head -1"
+      ).strip()
+      print(f"checking that {filename} is non-empty")
+      size = int(node1.succeed(f"stat -c '%s' {filename}").strip())
+      print(f"profile file size: {size} bytes")
+      assert size > 0, f"profile file {filename} is empty"
+
+      print("verifying filename format: bitcoind-YYYYMMDD-HHMMSS-node1.json.gz")
+      import re
+      basename = filename.split("/")[-1]
+      assert re.match(r"^bitcoind-\d{8}-\d{6}-node1\.json\.gz$", basename), \
+        f"unexpected profile filename: {basename}"
+
+      print("verifying node2 (samply-continuous-profiling=false) has no profile files")
+      node2.fail("ls /data/profiling/bitcoind-*.json.gz")
+
     def check_prometheus_scrape_config():
       """Verify each remote-node Prometheus scrape job uses the correct URL path
       from CONSTANTS. Catches bugs where the wrong metrics_path or port
@@ -281,6 +313,8 @@ pkgs.testers.runNixOSTest {
     web2.wait_for_unit("multi-user.target")
 
     check_parca()
+
+    check_samply_continuous_profiling()
 
     check_sanitizer_suppressions()
 
