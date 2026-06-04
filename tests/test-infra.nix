@@ -88,10 +88,14 @@ in
       };
 
       parca = true;
+      samply-continuous-profiling = true;
 
       extraConfig = (testOnlySSHHostKeyExtraConfig "node1") // {
         # extra memory needed for peer-observer extractor huge-msg table
         virtualisation.memorySize = 3072;
+        # In the integration test, capture only 5s of samples per run instead of
+        # the production default of 24h so we can observe a completed file.
+        services.bitcoind-profiling.duration = 5;
       };
       extraModules = [ ];
     };

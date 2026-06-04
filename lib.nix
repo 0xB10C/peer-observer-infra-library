@@ -21,6 +21,7 @@ let
       ./modules/node/node.nix
       ./modules/node/parca/agent.nix
       ./modules/node/parca/server.nix
+      ./modules/node/profiling.nix
 
       agenix.nixosModules.default
 
