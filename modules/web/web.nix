@@ -575,12 +575,20 @@ in
             metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_ADDRESSCONNECTIVITY_TOOL;
             static_configs = (mkScrapeConfigs addrConnectivityNodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
-          # rpx-extractor metrics scrape config
+          # rpc-extractor metrics scrape config
           {
             job_name = "peer-observer-rpc-extractor-metrics";
             scrape_interval = "30s";
             fallback_scrape_protocol = "PrometheusText0.0.4";
             metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS;
+            static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
+          }
+          # ipc-extractor metrics scrape config
+          {
+            job_name = "peer-observer-ipc-extractor-metrics";
+            scrape_interval = "30s";
+            fallback_scrape_protocol = "PrometheusText0.0.4";
+            metrics_path = CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS;
             static_configs = (mkScrapeConfigs config.infra.nodes CONSTANTS.NODE_TO_WEBSERVER_PORT);
           }
           # bitcoind process exporter scrape config
