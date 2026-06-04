@@ -77,6 +77,7 @@ rec {
     "bench"
     "txpackages"
     "mempool" # since 2024-05-04
+    "leveldb" # since 2026-06-04
   ];
 
   FORK_OBSERVER_PORT = 2839;
