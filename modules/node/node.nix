@@ -625,6 +625,18 @@ in
                 '';
               };
 
+          # access to samply profile files the node hasn't deleted yet.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROFILING}" =
+            mkIf config.peer-observer.node.samply-continuous-profiling
+              {
+                alias = "${config.services.bitcoind-profiling.outputDir}/";
+                extraConfig = ''
+                  autoindex on;
+                  autoindex_exact_size off;
+                  limit_rate 500k; # kB/s
+                '';
+              };
+
           # access to the peer-observer websocket tool
           "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_WEBSOCKET_TOOL}" = {
             proxyPass = "http://127.0.0.1:${toString CONSTANTS.PEER_OBSERVER_TOOL_WEBSOCKET_PORT}/";
