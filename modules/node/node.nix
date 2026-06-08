@@ -104,7 +104,11 @@ in
       };
 
       addrmanSnapshots = {
-        enable = lib.mkEnableOption "periodic addrman snapshots using getrawaddrman. Snapshots are compressed with zstd and stored daily.";
+        enable =
+          lib.mkEnableOption "periodic addrman snapshots using getrawaddrman. Snapshots are compressed with zstd and stored daily."
+          // {
+            default = true;
+          };
         snapshotsToKeep = lib.mkOption {
           type = lib.types.ints.u16;
           description = "Number of daily snapshots to keep on the server before deleting them.";
