@@ -7,6 +7,7 @@ rec {
   NODE_TO_WEBSERVER_PATH_BITCOIND_RPC = "/"; # RPC needs to be / ...
   NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs/";
   NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS = "/addrman-snapshots/";
+  NODE_TO_WEBSERVER_PATH_PROFILING = "/samply-profiling/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS = "/peer-observer-rpc-extractor-metrics/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS = "/peer-observer-ipc-extractor-metrics/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL = "/peer-observer-metrics-tool/";

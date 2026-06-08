@@ -53,6 +53,12 @@ in
       default = "/run/bitcoind-mainnet/bitcoind.pid";
       description = "Path to the bitcoind PID file.";
     };
+
+    daysToKeep = mkOption {
+      type = types.ints.positive;
+      default = 30;
+      description = "Delete profile files older than this many days.";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -90,6 +96,24 @@ in
           --presymbolicate \
           --output "$OUTPUT"
       '';
+    };
+
+    systemd.services.bitcoind-profiling-cleanup = {
+      description = "Delete samply profile files older than ${toString cfg.daysToKeep} days";
+      serviceConfig.Type = "oneshot";
+      script = ''
+        find ${cfg.outputDir} -name "bitcoind-*.json.gz" \
+          -mtime +${toString cfg.daysToKeep} \
+          -delete
+      '';
+    };
+
+    systemd.timers.bitcoind-profiling-cleanup = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        Persistent = true;
+      };
     };
   };
 }

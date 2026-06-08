@@ -213,6 +213,17 @@ pkgs.testers.runNixOSTest {
       print("verifying node2 (samply-continuous-profiling=false) has no profile files")
       node2.fail("ls /data/profiling/bitcoind-*.json.gz")
 
+      print("checking webserver can fetch a profile file from node1 via wireguard")
+      profile_name = node1.succeed(
+        "ls /data/profiling/bitcoind-*-node1.json.gz | head -1 | xargs basename"
+      ).strip()
+      command = f"curl -s -I ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PROFILING}{profile_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
+      print("triggering bitcoind-profiling-cleanup.service on node1")
+      node1.succeed("systemctl start bitcoind-profiling-cleanup.service")
 
     def check_prometheus_scrape_config():
       """Verify each remote-node Prometheus scrape job uses the correct URL path
