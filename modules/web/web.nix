@@ -23,6 +23,8 @@ let
 
   debugLogPage = (pkgs.callPackage ./debug-logs.html.nix) { inherit config; };
 
+  addrmanSnapshotsPage = (pkgs.callPackage ./addrman-snapshots.html.nix) { inherit config; };
+
   mkForkObserverNode = name: host: {
     inherit (host) id description;
     inherit name;
@@ -56,6 +58,16 @@ let
     name: host:
     (lib.nameValuePair ("/debug-logs/${name}/") ({
       proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_DEBUG_LOGS}";
+      extraConfig = ''
+        limit_rate 500k; # kB/s
+      '';
+    }));
+
+  # Only nodes with addrman snapshots enabled expose the snapshots endpoint.
+  mkAddrmanSnapshotsLocation =
+    name: host:
+    (lib.nameValuePair ("/addrman-snapshots/${name}/") ({
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS}";
       extraConfig = ''
         limit_rate 500k; # kB/s
       '';
@@ -303,6 +315,19 @@ in
               '';
             };
 
+            "/addrman-snapshots" = {
+              extraConfig = "rewrite /addrman-snapshots /addrman-snapshots/ redirect;";
+            };
+            "/addrman-snapshots/" = {
+              root = "${addrmanSnapshotsPage}";
+              index = "index.html";
+              tryFiles = "$uri $uri/index.html $uri/ =404";
+              extraConfig = ''
+                default_type text/html;
+                rewrite /addrman-snapshots/(.*) /$1  break;
+              '';
+            };
+
             "/websocket" = {
               extraConfig = "rewrite /websocket /websocket/ redirect;";
             };
@@ -323,7 +348,10 @@ in
             '';
           }
           // (lib.mapAttrs' mkWebsocketLocation (config.infra.nodes))
-          // (lib.mapAttrs' mkDebugLogLocation (config.infra.nodes));
+          // (lib.mapAttrs' mkDebugLogLocation (config.infra.nodes))
+          // (lib.mapAttrs' mkAddrmanSnapshotsLocation (
+            lib.filterAttrs (name: host: host.bitcoind.addrmanSnapshots.enable) config.infra.nodes
+          ));
         };
 
         # Users can and should overwrite this, if they want to e.g. put FULL_ACCESS

@@ -288,6 +288,26 @@ pkgs.testers.runNixOSTest {
       print(f"{command}: {output}")
       assert_log("HTTP/1.1 200 OK", output)
 
+      print("checking the FULL_ACCESS frontend serves the addrman-snapshots index page")
+      # without trailing slash
+      command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman-snapshots"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("302 Found", output)
+
+      # with trailing slash, the index page lists the nodes
+      command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman-snapshots/"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("peer-observer addrman snapshots", output)
+      assert_log("/addrman-snapshots/node1/", output)
+
+      print("checking the FULL_ACCESS frontend proxies a snapshot from node1")
+      command = f"curl -s -I 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman-snapshots/node1/{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
     def check_sanitizer_suppressions():
       print("checking sanitizer env vars are set on node1 bitcoind (sanitizersAddressUndefined=true)")
       output = node1.succeed("systemctl show bitcoind-mainnet.service --property=Environment")
