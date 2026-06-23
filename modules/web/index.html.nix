@@ -37,6 +37,7 @@ let
                         <a class="nav-link" href="/monitoring/d/home/home">monitoring</a>
                         <a class="nav-link" href="/monitoring/playlists">playlist</a>
                         <a class="nav-link" href="/debug-logs/">debug logs</a>
+                        <a class="nav-link" href="/addrman-snapshots/">addrman snapshots</a>
                         <a class="nav-link" href="/websocket/">websocket</a>
                       ''
                     else
@@ -166,6 +167,11 @@ let
               <a href="${
                 if limited then "nice try" else "/debug-logs/${name}/"
               }" class="btn btn-outline-secondary ${lib.optionalString limited "disabled"}">debug.log</a>
+              ${lib.optionalString host.bitcoind.addrmanSnapshots.enable ''
+                <a href="${
+                  if limited then "nice try" else "/addrman-snapshots/${name}/"
+                }" class="btn btn-outline-secondary ${lib.optionalString limited "disabled"}">addrman snapshots</a>
+              ''}
             </div>
           </div>
         </div>
