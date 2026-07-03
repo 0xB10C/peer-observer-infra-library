@@ -295,7 +295,7 @@ in
           # forkobserver user
           # Don't allow getnetworkinfo even if fork-observer tires to use it to fetch the version
           # Otherwise, fork-observer will show the version, which can be a honeypot leak.
-          rpcwhitelist=forkobserver:getchaintips,getblockhash,getblockheader,getblock
+          rpcwhitelist=forkobserver:getchaintips,getblockhash,getblockheader,getblock,waitfornewblock
           rpcauth=forkobserver:${CONSTANTS.FORK_OBSERVER_RPC_AUTH}
         ''}
         ${optionalString (config.peer-observer.node.addrman-observer.enable) ''
