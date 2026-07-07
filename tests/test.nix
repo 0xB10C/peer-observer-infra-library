@@ -91,7 +91,7 @@ pkgs.testers.runNixOSTest {
       command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_PORT}/forks/api/networks.json"
       output = web1.succeed(command)
       print(f"{command}: {output}")
-      assert_log('{"networks":[{"id":1,"name":"regtest","description":"  fork-observer attached to peer-observer nodes"}]}', output)
+      assert_log('{"networks":[{"id":1,"name":"regtest","slug":"regtest","description":"  fork-observer attached to peer-observer nodes"}]}', output)
       command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_LIMITED_ACCESS_PORT}/forks/api/1/data.json"
       output = web1.succeed(command)
       print(f"{command}: {output}")
