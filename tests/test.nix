@@ -340,15 +340,50 @@ pkgs.testers.runNixOSTest {
       print(f"{command}: {output}")
       assert_log("302 Found", output)
 
-      # with trailing slash, the index page lists the nodes
+      # with trailing slash, the combined index page lists the nodes and
+      # links to both the getrawaddrman and peers.dat snapshots per node.
       command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman-snapshots/"
       output = web1.succeed(command)
       print(f"{command}: {output}")
       assert_log("peer-observer addrman snapshots", output)
       assert_log("/addrman-snapshots/node1/", output)
+      assert_log("/peers-dat-snapshots/node1/", output)
 
       print("checking the FULL_ACCESS frontend proxies a snapshot from node1")
       command = f"curl -s -I 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/addrman-snapshots/node1/{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
+    def check_peers_dat_snapshots():
+      print("triggering peers-dat-snapshot.service on node1")
+      node1.succeed("systemctl start peers-dat-snapshot.service")
+
+      print("checking that a snapshot file was created in ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}")
+      output = node1.succeed("ls ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}/peers-*.dat.zst")
+      print(f"snapshot files: {output}")
+
+      print("checking snapshot decompresses to a peers.dat with the regtest network magic")
+      node1.succeed(
+        "${pkgs.zstd}/bin/zstd -d -c $(ls ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}/peers-*.dat.zst | head -1) > /tmp/peers-snapshot.dat"
+      )
+      output = node1.succeed("od -An -tx1 -N4 /tmp/peers-snapshot.dat | tr -d ' '")
+      assert_log("fabfb5da", output)
+
+      print("checking webserver can fetch a peers.dat snapshot from node1 via wireguard")
+      snapshot_name = node1.succeed(
+        "ls ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}/peers-*.dat.zst | head -1 | xargs basename"
+      ).strip()
+      command = f"curl -s -I ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS}{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
+      # peers.dat snapshots are listed on the combined addrman-snapshots index
+      # page (see check_addrman_snapshots); here we only check that the
+      # FULL_ACCESS frontend proxies an actual peers.dat snapshot from node1.
+      print("checking the FULL_ACCESS frontend proxies a peers.dat snapshot from node1")
+      command = f"curl -s -I 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/peers-dat-snapshots/node1/{snapshot_name}"
       output = web1.succeed(command)
       print(f"{command}: {output}")
       assert_log("HTTP/1.1 200 OK", output)
@@ -447,6 +482,8 @@ pkgs.testers.runNixOSTest {
     wait_until_nodes_connected()
 
     check_addrman_snapshots()
+
+    check_peers_dat_snapshots()
 
     check_bitcoind_rpc_connectivity()
 

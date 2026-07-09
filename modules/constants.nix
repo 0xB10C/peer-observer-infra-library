@@ -7,6 +7,7 @@ rec {
   NODE_TO_WEBSERVER_PATH_BITCOIND_RPC = "/"; # RPC needs to be / ...
   NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs/";
   NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS = "/addrman-snapshots/";
+  NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS = "/peers-dat-snapshots/";
   NODE_TO_WEBSERVER_PATH_PROFILING = "/samply-profiling/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS = "/peer-observer-rpc-extractor-metrics/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS = "/peer-observer-ipc-extractor-metrics/";
@@ -22,6 +23,7 @@ rec {
     NODE_TO_WEBSERVER_PATH_BITCOIND_RPC
     NODE_TO_WEBSERVER_PATH_DEBUG_LOGS
     NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS
+    NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL
@@ -49,6 +51,16 @@ rec {
     "regtest" = 18444;
   };
 
+  # Subdirectory of the bitcoind datadir where chain-specific files
+  # like peers.dat are stored.
+  BITCOIND_DATADIR_SUBDIR_BY_CHAIN = {
+    "main" = "";
+    "test" = "testnet3/";
+    "testnet4" = "testnet4/";
+    "signet" = "signet/";
+    "regtest" = "regtest/";
+  };
+
   PEER_OBSERVER_EXTRACTOR_P2P_NETWORK_NAME_MAP = {
     "main" = "mainnet";
     "test" = "testnet3";
@@ -62,6 +74,9 @@ rec {
 
   # Place where addrman snapshots are stored
   ADDRMAN_SNAPSHOTS_DIR = "/data/addrman-snapshots";
+
+  # Place where peers.dat snapshots are stored
+  PEERS_DAT_SNAPSHOTS_DIR = "/data/peers-dat-snapshots";
 
   # A UDP port exposed by the web hosts for nodes to connect to them.
   WIREGUARD_INTERFACE_PORT = 51820;

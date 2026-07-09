@@ -172,6 +172,11 @@ let
                   if limited then "nice try" else "/addrman-snapshots/${name}/"
                 }" class="btn btn-outline-secondary ${lib.optionalString limited "disabled"}">addrman snapshots</a>
               ''}
+              ${lib.optionalString host.bitcoind.peersDatSnapshots.enable ''
+                <a href="${
+                  if limited then "nice try" else "/peers-dat-snapshots/${name}/"
+                }" class="btn btn-outline-secondary ${lib.optionalString limited "disabled"}">peers.dat snapshots</a>
+              ''}
             </div>
           </div>
         </div>

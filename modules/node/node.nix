@@ -116,6 +116,20 @@ in
           example = 7;
         };
       };
+
+      peersDatSnapshots = {
+        enable =
+          lib.mkEnableOption "periodic snapshots of the node's peers.dat file. Snapshots are compressed with zstd and stored weekly."
+          // {
+            default = true;
+          };
+        snapshotsToKeep = lib.mkOption {
+          type = lib.types.ints.u16;
+          description = "Number of weekly snapshots to keep on the server before deleting them.";
+          default = 26;
+          example = 4;
+        };
+      };
     };
 
     fork-observer = {
@@ -520,9 +534,13 @@ in
       serviceConfig.Type = "oneshot";
     };
 
-    systemd.tmpfiles.rules = mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable [
-      "d ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR} 775 ${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group} -"
-    ];
+    systemd.tmpfiles.rules =
+      optionals config.peer-observer.node.bitcoind.addrmanSnapshots.enable [
+        "d ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR} 775 ${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group} -"
+      ]
+      ++ optionals config.peer-observer.node.bitcoind.peersDatSnapshots.enable [
+        "d ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR} 775 ${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group} -"
+      ];
 
     systemd.services."addrman-snapshot" =
       mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable
@@ -550,6 +568,45 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnCalendar = "daily";
+            Persistent = true;
+          };
+        };
+
+    systemd.services."peers-dat-snapshot" =
+      mkIf config.peer-observer.node.bitcoind.peersDatSnapshots.enable
+        {
+          after = [ "bitcoind-mainnet.service" ];
+          script = ''
+            set -e
+            # Bitcoin Core writes peers.dat atomically (write to peers.dat.new,
+            # then rename) every 15 minutes, so copying it here is safe. The
+            # snapshot is at most 15 minutes stale.
+            DATE=$(date +%Y%m%d)
+            PEERS_DAT="${config.services.bitcoind.mainnet.dataDir}/${
+              CONSTANTS.BITCOIND_DATADIR_SUBDIR_BY_CHAIN."${config.peer-observer.node.bitcoind.chain}"
+            }peers.dat"
+            SNAPSHOT="${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}/peers-$DATE-${config.peer-observer.base.name}.dat.zst"
+            # Read peers.dat via stdin (rather than passing it as a file
+            # argument) so the compressed output gets default permissions
+            # instead of inheriting peers.dat's restrictive 0600 mode, which
+            # would stop nginx from serving it. The open fd also gives us a
+            # consistent point-in-time read even if bitcoind rewrites the file.
+            ${pkgs.zstd}/bin/zstd -19 -o "$SNAPSHOT" < "$PEERS_DAT"
+            find ${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR} -name "peers-*.dat.zst" \
+              -mtime +${toString (config.peer-observer.node.bitcoind.peersDatSnapshots.snapshotsToKeep * 7)} \
+              -delete
+          '';
+          serviceConfig = {
+            Type = "oneshot";
+          };
+        };
+
+    systemd.timers."peers-dat-snapshot" =
+      mkIf config.peer-observer.node.bitcoind.peersDatSnapshots.enable
+        {
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnCalendar = "weekly";
             Persistent = true;
           };
         };
@@ -622,6 +679,18 @@ in
             mkIf config.peer-observer.node.bitcoind.addrmanSnapshots.enable
               {
                 alias = "${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR}/";
+                extraConfig = ''
+                  autoindex on;
+                  autoindex_exact_size off;
+                  limit_rate 500k; # kB/s
+                '';
+              };
+
+          # access to peers.dat snapshots the node hasn't deleted yet.
+          "${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS}" =
+            mkIf config.peer-observer.node.bitcoind.peersDatSnapshots.enable
+              {
+                alias = "${CONSTANTS.PEERS_DAT_SNAPSHOTS_DIR}/";
                 extraConfig = ''
                   autoindex on;
                   autoindex_exact_size off;
