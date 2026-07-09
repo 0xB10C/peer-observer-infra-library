@@ -225,6 +225,51 @@ pkgs.testers.runNixOSTest {
       print("triggering bitcoind-profiling-cleanup.service on node1")
       node1.succeed("systemctl start bitcoind-profiling-cleanup.service")
 
+    def check_bitcoind_no_restart_on_crash():
+      """Regression test for infra-library issue #190: after a crash/OOM-kill
+      bitcoind must NOT be automatically restarted, and the samply
+      bitcoind-profiling unit must not resurrect it via a requirement
+      dependency. node1 has samply-continuous-profiling enabled (the case that
+      regressed); node2 does not. This is destructive to bitcoind on node1, so
+      it runs last."""
+      import time
+
+      print("verifying bitcoind-mainnet has Restart=no on node1 and node2")
+      for node in [node1, node2]:
+        restart = node.succeed(
+          "systemctl show bitcoind-mainnet.service --property=Restart --value"
+        ).strip()
+        assert restart == "no", f"expected bitcoind-mainnet Restart=no, got {restart!r}"
+
+      print("verifying bitcoind-profiling has no upward (pull-up) dependency on bitcoind on node1")
+      # After/PartOf/Requisite are fine (no upward activation). Requires/BindsTo/
+      # Wants would let the profiler's Restart=always cycle start a stopped
+      # bitcoind back up and defeat Restart=no.
+      for prop in ["Requires", "BindsTo", "Wants"]:
+        deps = node1.succeed(
+          f"systemctl show bitcoind-profiling.service --property={prop} --value"
+        ).strip()
+        assert "bitcoind-mainnet.service" not in deps, \
+          f"bitcoind-profiling {prop} must not contain bitcoind-mainnet.service, got: {deps!r}"
+
+      node1.wait_for_unit("bitcoind-profiling.service")
+
+      print("simulating an OOM-kill of bitcoind on node1 (SIGKILL of the whole unit)")
+      node1.succeed("systemctl kill --signal=SIGKILL bitcoind-mainnet.service")
+
+      print("waiting for bitcoind-mainnet to leave the active state on node1")
+      node1.wait_until_fails("systemctl is-active bitcoind-mainnet.service")
+
+      print("giving bitcoind-profiling's Restart=always (RestartSec=10s) a chance to resurrect it")
+      time.sleep(30)
+
+      print("verifying bitcoind-mainnet stayed down (was NOT auto-restarted)")
+      node1.fail("systemctl is-active bitcoind-mainnet.service")
+
+      print("verifying bitcoind can still be started manually again on node1")
+      node1.succeed("systemctl start bitcoind-mainnet.service")
+      node1.wait_for_unit("bitcoind-mainnet.service")
+
     def check_prometheus_scrape_config():
       """Verify each remote-node Prometheus scrape job uses the correct URL path
       from CONSTANTS. Catches bugs where the wrong metrics_path or port
@@ -410,6 +455,9 @@ pkgs.testers.runNixOSTest {
     check_fork_observer()
 
     check_prometheus_scrape_config()
+
+    # Runs last: it kills bitcoind on node1 to assert it is not auto-restarted.
+    check_bitcoind_no_restart_on_crash()
 
     # TODO: test addrLookup
     # TODO: test logrotate (logrotate currently might only work on mainnet..)
