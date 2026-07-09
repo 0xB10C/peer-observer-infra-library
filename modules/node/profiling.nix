@@ -70,7 +70,16 @@ in
       description = "samply CPU profiling of bitcoind (${toString cfg.duration}s captures at ${toString cfg.rate}Hz)";
       wantedBy = [ "multi-user.target" ];
       after = [ cfg.bitcoindService ];
-      bindsTo = [ cfg.bitcoindService ];
+      # Track bitcoind downward only: stop/restart *with* bitcoind, but never
+      # start it. Using bindsTo here (or requires) would give this unit
+      # Requires-style activation semantics, so its own Restart=always cycle
+      # would pull a stopped bitcoind back up after a crash/OOM-kill and defeat
+      # the `Restart = "no"` on bitcoind-mainnet (see infra-library issue #190).
+      # partOf propagates bitcoind's stop/restart down to us without pulling it
+      # up; requisite makes our (re)start fail fast unless bitcoind is already
+      # running, instead of samply looping on a missing PID file.
+      partOf = [ cfg.bitcoindService ];
+      requisite = [ cfg.bitcoindService ];
 
       serviceConfig = {
         Type = "simple";
