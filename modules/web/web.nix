@@ -23,6 +23,7 @@ let
 
   debugLogPage = (pkgs.callPackage ./debug-logs.html.nix) { inherit config; };
 
+  # Combined overview page for both getrawaddrman and peers.dat snapshots.
   addrmanSnapshotsPage = (pkgs.callPackage ./addrman-snapshots.html.nix) { inherit config; };
 
   mkForkObserverNode = name: host: {
@@ -68,6 +69,16 @@ let
     name: host:
     (lib.nameValuePair ("/addrman-snapshots/${name}/") ({
       proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS}";
+      extraConfig = ''
+        limit_rate 500k; # kB/s
+      '';
+    }));
+
+  # Only nodes with peers.dat snapshots enabled expose the snapshots endpoint.
+  mkPeersDatSnapshotsLocation =
+    name: host:
+    (lib.nameValuePair ("/peers-dat-snapshots/${name}/") ({
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS}";
       extraConfig = ''
         limit_rate 500k; # kB/s
       '';
@@ -351,6 +362,9 @@ in
           // (lib.mapAttrs' mkDebugLogLocation (config.infra.nodes))
           // (lib.mapAttrs' mkAddrmanSnapshotsLocation (
             lib.filterAttrs (name: host: host.bitcoind.addrmanSnapshots.enable) config.infra.nodes
+          ))
+          // (lib.mapAttrs' mkPeersDatSnapshotsLocation (
+            lib.filterAttrs (name: host: host.bitcoind.peersDatSnapshots.enable) config.infra.nodes
           ));
         };
 
