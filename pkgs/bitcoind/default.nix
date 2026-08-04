@@ -22,8 +22,8 @@
   # optional args specifiying which commit, branch and repo to use
   gitURL ? "https://github.com/bitcoin/bitcoin.git",
   gitBranch ? "master",
-  # https://github.com/bitcoin/bitcoin/commit/1ea532e590cdc16b86436a2bc4f92d74082307f9
-  gitCommit ? "1ea532e590cdc16b86436a2bc4f92d74082307f9",
+  # https://github.com/bitcoin/bitcoin/commit/17e06e92bea4305f454a0a9537766028b84482b4
+  gitCommit ? "17e06e92bea4305f454a0a9537766028b84482b4",
   sanitizersAddressUndefined ? false,
   sanitizersThread ? false,
   # by default, symlink the bitcoin-node binary into the location of
