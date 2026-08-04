@@ -93,6 +93,7 @@ rec {
     "txpackages"
     "mempool" # since 2024-05-04
     "leveldb" # since 2026-06-04
+    "coindb" # since 2026-08-05
   ];
 
   FORK_OBSERVER_PORT = 2839;
