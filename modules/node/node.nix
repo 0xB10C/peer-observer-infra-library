@@ -13,6 +13,8 @@ let
   NATS_PORT = 4222;
 in
 {
+  imports = [ ./logrotate.nix ];
+
   options = {
     enable = lib.mkEnableOption "this host is a Bitcoin node";
 
@@ -91,12 +93,12 @@ in
       detailedLogging = {
         enable = lib.mkOption {
           type = lib.types.bool;
-          description = "If enabled, turn on potentially spammy debug log categories like `net` and `mempoolrej`. Logs are rotated daily and compressed.";
+          description = "If enabled, turn on potentially spammy debug log categories like `net` and `mempoolrej`. The debug.log is rotated hourly and each compressed hourly chunk is accumulated into a per-day gzip archive kept next to debug.log in the bitcoind data dir; a day's archive is only published to the served/rcloned debug-logs dir once the day is complete (the next day), so half-finished days are never exposed.";
           default = true;
         };
         logsToKeep = lib.mkOption {
           type = lib.types.ints.u16;
-          description = "Logs to keep on the server before deleting them (maps to logrotates 'rotate' setting). Logs are rotated daily, so keeping two logs means keeping two days worth of logs.";
+          description = "Number of finalized daily debug.log archives to keep on the server before deleting them. The log is rotated hourly and published as one gzip file per completed day, so this is a count of days.";
           default = 4;
           example = 2;
         };
@@ -517,23 +519,6 @@ in
             Environment = "RPC_BAN_USER=ban RPC_BAN_PW=${CONSTANTS.BANLIST_RPC_PASSWORD}";
           };
         };
-    systemd.services."mkdir-data-debug-logs" = {
-      wantedBy = [
-        "logrotate.service"
-        "logrotate-checkconf.service"
-      ];
-      before = [
-        "logrotate.service"
-        "logrotate-checkconf.service"
-      ];
-      script = ''
-        mkdir -p ${CONSTANTS.DEBUG_LOGS_DIR}
-        chown ${config.services.bitcoind.mainnet.user}:${config.services.bitcoind.mainnet.group} ${CONSTANTS.DEBUG_LOGS_DIR}
-        chmod -R 775 ${CONSTANTS.DEBUG_LOGS_DIR}
-      '';
-      serviceConfig.Type = "oneshot";
-    };
-
     systemd.tmpfiles.rules =
       optionals config.peer-observer.node.bitcoind.addrmanSnapshots.enable [
         "d ${CONSTANTS.ADDRMAN_SNAPSHOTS_DIR} 775 ${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group} -"
@@ -610,23 +595,6 @@ in
             Persistent = true;
           };
         };
-
-    services.logrotate = {
-      settings = {
-        "${config.services.bitcoind."mainnet".dataDir}/debug.log" =
-          mkIf config.peer-observer.node.bitcoind.detailedLogging.enable
-            {
-              frequency = "daily";
-              dateext = "dateformat -%Y%m%d-${config.peer-observer.base.name}";
-              compress = true;
-              datehourago = true;
-              copytruncate = true;
-              olddir = CONSTANTS.DEBUG_LOGS_DIR;
-              rotate = config.peer-observer.node.bitcoind.detailedLogging.logsToKeep;
-              su = "${config.services.bitcoind.mainnet.user} ${config.services.bitcoind.mainnet.group}";
-            };
-      };
-    };
 
     services.bitcoind-profiling = mkIf config.peer-observer.node.samply-continuous-profiling {
       enable = true;

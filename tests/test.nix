@@ -225,6 +225,119 @@ pkgs.testers.runNixOSTest {
       print("triggering bitcoind-profiling-cleanup.service on node1")
       node1.succeed("systemctl start bitcoind-profiling-cleanup.service")
 
+    def check_debug_log_rotation():
+      """Tests the hourly SIGHUP-based debug.log rotation: each run renames the
+      live log aside, has bitcoind reopen a fresh one via SIGHUP, and appends the
+      compressed chunk to a per-day gzip archive staged next to debug.log in the
+      bitcoind data dir. A day's archive is only published to the served/rcloned
+      DEBUG_LOGS_DIR once it is finalized (we've rolled into the next day), so a
+      half-finished day is never exposed. node1 has detailedLogging enabled
+      (logsToKeep=2) and runs on regtest, so debug.log lives in the regtest/
+      subdir."""
+      import re
+
+      # In-progress archives are staged next to debug.log in the data dir.
+      staging = "/var/lib/bitcoind-mainnet/regtest"
+      served = "${CONSTANTS.DEBUG_LOGS_DIR}"
+      debug_log = f"{staging}/debug.log"
+      bitcoin_cli = "${pkgs.bitcoind}/bin/bitcoin-cli -rpcport=${toString CONSTANTS.BITCOIND_RPC_PORT} -datadir=/var/lib/bitcoind-mainnet/regtest"
+      gzip = "${pkgs.gzip}/bin/gzip"
+      zcat = "${pkgs.gzip}/bin/zcat"
+      # Mining forces bitcoind to emit log lines (so debug.log has content and
+      # bitcoind acts on a pending SIGHUP reopen). Runs after the height-
+      # sensitive checks, so extra blocks here are harmless.
+      mine = bitcoin_cli + " generatetoaddress 1 bcrt1qs758ursh4q9z627kt3pp5yysm78ddny6txaqgw"
+      rotate = "systemctl start bitcoind-debug-log-rotate.service"
+
+      print("checking the hourly rotation timer is active on node1")
+      node1.wait_for_unit("bitcoind-debug-log-rotate.timer")
+
+      print("verifying the log-extractor fifo pipe follows with `tail -F` (rotation-safe)")
+      execstart = node1.succeed(
+        "systemctl show peer-observer-log-extractor-fifo-pipe.service --property=ExecStart"
+      )
+      print(execstart)
+      assert_log("tail -F", execstart)
+      assert "tail -f " not in execstart, "fifo pipe still uses inode-following `tail -f`"
+
+      print("waiting for bitcoind's debug.log to exist on node1")
+      node1.wait_until_succeeds(f"test -f {debug_log}", timeout=60)
+      node1.succeed(mine)
+      old_inode = node1.succeed(f"stat -c %i {debug_log}").strip()
+      print(f"debug.log inode before rotation: {old_inode}")
+
+      print("triggering bitcoind-debug-log-rotate.service (first run)")
+      node1.succeed(rotate)
+
+      print("checking the current day's chunk lands in STAGING, not the served dir")
+      staged = node1.succeed(f"ls {staging}/debug.log-*-node1.gz | head -1").strip()
+      basename = staged.split("/")[-1]
+      print(f"staged archive: {basename}")
+      assert re.match(r"^debug\.log-\d{8}-node1\.gz$", basename), \
+        f"unexpected archive name: {basename}"
+      # The archive is dated with `date -d '1 hour ago'`, which is always today
+      # or yesterday; this locks in the day-boundary-safe naming (a 00:00 run
+      # files the previous day's lines under the previous day).
+      file_date = basename[len("debug.log-"):len("debug.log-") + 8]
+      today = node1.succeed("date +%Y%m%d").strip()
+      yesterday = node1.succeed("date -d yesterday +%Y%m%d").strip()
+      assert file_date in (today, yesterday), \
+        f"archive date {file_date} is neither today {today} nor yesterday {yesterday}"
+      print("checking the unfinished current day is NOT yet in the served/rcloned dir")
+      node1.fail(f"ls {served}/debug.log-*-node1.gz")
+
+      print("checking the staged archive is a valid gzip and decompresses to log content")
+      node1.succeed(f"{gzip} -t {staged}")
+      contents = node1.succeed(f"{zcat} {staged}")
+      assert len(contents) > 0, "staged archive decompressed to empty output"
+
+      print("checking bitcoind reopened a fresh debug.log after SIGHUP (new inode)")
+      node1.succeed(mine)
+      node1.wait_until_succeeds(f"test -f {debug_log}", timeout=30)
+      new_inode = node1.succeed(f"stat -c %i {debug_log}").strip()
+      print(f"debug.log inode after rotation: {new_inode}")
+      assert new_inode != old_inode, \
+        f"debug.log inode unchanged ({old_inode}); bitcoind did not reopen after SIGHUP"
+
+      print("second rotation appends another gzip member to the same staged day file")
+      size1 = int(node1.succeed(f"stat -c %s {staged}").strip())
+      node1.succeed(mine)
+      node1.succeed(rotate)
+      node1.succeed(f"{gzip} -t {staged}")  # still valid as a multi-member gzip
+      size2 = int(node1.succeed(f"stat -c %s {staged}").strip())
+      assert size2 > size1, \
+        f"staged archive did not grow on the second rotation ({size1} -> {size2}); append/concat broken"
+      print("checking the current day is still NOT published to the served dir")
+      node1.fail(f"ls {served}/debug.log-*-node1.gz")
+
+      print("checking a completed (older) day gets finalized to the served dir")
+      # Stage a file for an earlier day; the next run's accumulating day differs
+      # from it, so it must be published to the served/rcloned dir and removed
+      # from staging, while the current day's file stays put.
+      finalized = f"{served}/debug.log-20200101-node1.gz"
+      old_staged = f"{staging}/debug.log-20200101-node1.gz"
+      node1.succeed(f"install -m644 {staged} {old_staged}")
+      node1.succeed(mine)
+      node1.succeed(rotate)
+      node1.succeed(f"test -f {finalized}")            # published
+      node1.fail(f"test -e {old_staged}")              # removed from staging
+      node1.succeed(f"test -f {staged}")               # current day still staged
+      node1.succeed(f"{gzip} -t {finalized}")          # published file is a valid gzip
+
+      print("checking retention deletes published archives older than logsToKeep (2) days")
+      old_archive = f"{served}/debug.log-20200102-node1.gz"
+      node1.succeed(f"install -m644 {staged} {old_archive}")
+      node1.succeed(f"touch -d '30 days ago' {old_archive}")
+      node1.succeed(mine)
+      node1.succeed(rotate)
+      node1.fail(f"test -e {old_archive}")
+      print("checking the freshly-finalized archive survived retention")
+      node1.succeed(f"test -f {finalized}")
+
+      print("checking the log-extractor kept following the rotated log")
+      node1.succeed("systemctl is-active peer-observer-log-extractor-fifo-pipe.service")
+      node1.succeed("systemctl is-active peer-observer-log-extractor.service")
+
     def check_bitcoind_no_restart_on_crash():
       """Regression test for infra-library issue #190: after a crash/OOM-kill
       bitcoind must NOT be automatically restarted, and the samply
@@ -493,11 +606,12 @@ pkgs.testers.runNixOSTest {
 
     check_prometheus_scrape_config()
 
+    check_debug_log_rotation()
+
     # Runs last: it kills bitcoind on node1 to assert it is not auto-restarted.
     check_bitcoind_no_restart_on_crash()
 
     # TODO: test addrLookup
-    # TODO: test logrotate (logrotate currently might only work on mainnet..)
     # TODO: check web1 paths existing and reachable
     # TODO: check websockets tool
     # TODO: check banlist script successful

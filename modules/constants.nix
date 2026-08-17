@@ -69,7 +69,10 @@ rec {
     "regtest" = "regtest";
   };
 
-  # Place where logrotate should put the debug.log's
+  # Place where finalized (whole-day) debug.log archives are published. This
+  # dir is nginx-served and rcloned, so only complete day-files ever land here.
+  # The in-progress ("today") archive accumulates next to debug.log in the
+  # bitcoind data dir and is published here once the day is complete.
   DEBUG_LOGS_DIR = "/data/debug-logs";
 
   # Place where addrman snapshots are stored
