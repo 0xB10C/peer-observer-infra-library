@@ -2,7 +2,7 @@
 
 This guide covers setting up encrypted secrets using Agenix.
 
-> **Tip**: The template includes a `justfile` with automation recipes. Commands like `just gen-wg-key node01` handle step 4 below (the justfile outputs the public key for you to copy into `infra.nix` in step 5). The manual instructions explain what the automation does under the hood.
+> **Tip**: The template dev shell defines helpers for the common secret-management tasks. `gen-wg-key node01`, for example, handles step 4 below and outputs the public key to copy into `infra.nix` in step 5. Run `infra-help` from the dev shell for the complete list. The manual instructions explain what the helpers do under the hood.
 
 ## Understanding the Key Types
 
@@ -88,6 +88,8 @@ cat ~/.age/key.txt | grep "public key"
 
 **Keep `~/.age/key.txt` safe!** Back it up securely - you need it to edit secrets.
 
+The dev-shell helpers (`rekey`, `view-secret`) read your identity from `$AGE_IDENTITY`, defaulting to `~/.age/key.txt`. Set `AGE_IDENTITY` if your key lives elsewhere.
+
 ### 2. Get Host SSH Public Keys
 
 After initial deployment with `setup = true`, get each host's SSH public key:
@@ -99,10 +101,7 @@ ssh-keyscan <web01-ip> 2>/dev/null
 
 > **Note**: `age` supports **ed25519** and **RSA** (2048+ bit) SSH keys, but not ECDSA or DSA. Look for an `ssh-ed25519` or `ssh-rsa` line in the output.
 
-> **Note**: `ssh-keyscan` ignores your `~/.ssh/config` entirely — it doesn't read port settings or hostname aliases. You must use raw IP addresses, and if your hosts use a non-standard SSH port, add `-p <port>`:
-> ```bash
-> ssh-keyscan -p 8188 <node01-ip> 2>/dev/null
-> ```
+> **Note**: `ssh-keyscan` ignores your `~/.ssh/config` — use raw IP addresses, and add `-p <port>` for non-standard SSH ports (see [Troubleshooting](troubleshooting.md#ssh-keyscan-ignores-ssh-config)).
 
 Output looks like:
 ```
@@ -133,14 +132,14 @@ in
 
 ### 4. Generate and Encrypt Secrets
 
-**With justfile** (recommended):
+From the dev shell (recommended):
 ```bash
-just gen-wg-key node01
-just gen-wg-key web01
-just gen-grafana-password web01
+gen-wg-key node01
+gen-wg-key web01
+gen-grafana-password web01
 ```
 
-**Manually** — The justfile automates the following. This explains what happens under the hood:
+**Manually** — The dev-shell helpers automate the following. This explains what happens under the hood:
 
 #### WireGuard Keys
 
@@ -157,9 +156,12 @@ PUBLIC_KEY=$(echo "$PRIVATE_KEY" | wg pubkey)
 # Get encryption recipients
 USER_KEY="age1..."        # Your age public key
 HOST_KEY="ssh-ed25519 AAAA..."  # Host's SSH public key
+HOST_KEY_FILE=$(mktemp)
+trap 'rm -f "$HOST_KEY_FILE"' EXIT
+printf '%s\n' "$HOST_KEY" > "$HOST_KEY_FILE"
 
 # Encrypt private key directly to .age file
-echo "$PRIVATE_KEY" | age -r "$USER_KEY" -r "$HOST_KEY" \
+echo "$PRIVATE_KEY" | age -r "$USER_KEY" -R "$HOST_KEY_FILE" \
   -o secrets/wireguard-private-key-node01.age
 
 echo "Public key for infra.nix: $PUBLIC_KEY"
@@ -177,8 +179,11 @@ PASSWORD=$(openssl rand -base64 32)
 
 USER_KEY="age1..."
 HOST_KEY="ssh-ed25519 AAAA..."  # web01's SSH key
+HOST_KEY_FILE=$(mktemp)
+trap 'rm -f "$HOST_KEY_FILE"' EXIT
+printf '%s\n' "$HOST_KEY" > "$HOST_KEY_FILE"
 
-echo "$PASSWORD" | age -r "$USER_KEY" -r "$HOST_KEY" \
+echo "$PASSWORD" | age -r "$USER_KEY" -R "$HOST_KEY_FILE" \
   -o secrets/grafana-admin-password-web01.age
 
 echo "Grafana password (save this!): $PASSWORD"
@@ -222,8 +227,8 @@ Then deploy:
 
 ```bash
 nix develop
-just deploy node01
-just deploy web01
+deploy node01
+deploy web01
 ```
 
 ## Re-keying Secrets
@@ -231,8 +236,8 @@ just deploy web01
 If you need to change encryption recipients (new host key, etc.):
 
 ```bash
-just rekey
-# Or manually: cd secrets && agenix -r
+rekey
+# Or manually: cd secrets && agenix -r -i ~/.age/key.txt
 ```
 
 This re-encrypts all secrets with current recipients from `secrets.nix`.
@@ -241,12 +246,12 @@ This re-encrypts all secrets with current recipients from `secrets.nix`.
 
 ```bash
 # View a secret
-just view-secret wireguard-private-key-node01.age
-# Or manually: age -d secrets/wireguard-private-key-node01.age
+view-secret wireguard-private-key-node01.age
+# Or manually: age -d -i ~/.age/key.txt secrets/wireguard-private-key-node01.age
 
 # Edit with agenix (from dev shell, inside secrets/ directory)
 nix develop
-cd secrets && agenix -e wireguard-private-key-node01.age
+cd secrets && agenix -e wireguard-private-key-node01.age -i ~/.age/key.txt
 ```
 
 ## Required Secrets Per Host Type
@@ -258,35 +263,16 @@ cd secrets && agenix -e wireguard-private-key-node01.age
 - `wireguard-private-key-<hostname>.age`
 - `grafana-admin-password-<hostname>.age`
 
-## Quick Reference (justfile)
+## Quick Reference (dev shell)
 
 | Command | Description |
 |---------|-------------|
-| `just gen-wg-key <host>` | Generate and encrypt WireGuard key |
-| `just gen-grafana-password <host>` | Generate and encrypt Grafana password |
-| `just get-host-key <host> [port]` | Get SSH host key from a deployed host |
-| `just rekey` | Re-encrypt all secrets after key changes |
-| `just view-secret <file>` | Decrypt and display a secret |
+| `gen-wg-key <host>` | Generate and encrypt WireGuard key |
+| `gen-grafana-password <host>` | Generate and encrypt Grafana password |
+| `get-host-key <host> [port]` | Get SSH host key from a deployed host |
+| `rekey` | Re-encrypt all secrets after key changes |
+| `view-secret <file>` | Decrypt and display a secret |
 
 ## Troubleshooting
 
-### "no secret key" during deploy
-
-The host can't decrypt secrets. Check:
-1. Host SSH public key in `secrets.nix` matches actual key on server
-2. Re-encrypt secrets: `just rekey` (or `cd secrets && agenix -r`)
-
-### Can't decrypt locally
-
-Your age key isn't a recipient. Check:
-1. Your age public key is in `secrets.nix` for that secret
-2. Re-encrypt: `cd secrets && agenix -r`
-
-### Lost age key
-
-If you lose `~/.age/key.txt`:
-1. Generate new key: `age-keygen -o ~/.age/key.txt`
-2. Update `secrets.nix` with new public key
-3. SSH to each host, manually retrieve secrets, re-encrypt
-
-This is why backing up your age key is critical.
+For decryption failures ("no secret key" during deploy, can't edit secrets locally) and lost-key recovery, see [Secrets Issues in Troubleshooting](troubleshooting.md#secrets-issues).

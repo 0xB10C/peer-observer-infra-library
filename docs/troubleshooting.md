@@ -12,7 +12,7 @@ Common issues and solutions for peer-observer infrastructure.
 | eBPF extractor fails | Check logs; some VPS providers restrict eBPF |
 | Permission denied | Ensure SSH key in `global.admin.sshPubKeys` |
 | Root SSH disabled | Enable root login on cloud VPS before nixos-anywhere |
-| Host key changed | `ssh-keygen -R <ip>` then update secrets.nix and `just rekey` |
+| Host key changed | `ssh-keygen -R <ip>` then update secrets.nix and `rekey` |
 | Grafana 404 | `LIMITED_ACCESS` mode — use SSH tunnel to localhost:9321 |
 | Grafana wrong port | Grafana runs on 9321, not default 3000 |
 | HTTPS not working | Trigger ACME manually: `systemctl start acme-<domain>.service` |
@@ -75,11 +75,11 @@ If missing, see [Secrets Management](secrets.md).
 
 ### Deploy Command Not Found
 
-From the dev shell, use justfile or shell function:
+From the dev shell, use the deployment helper:
 
 ```bash
 nix develop
-just deploy node01  # or: deploy node01
+deploy node01
 ```
 
 Or use the direct command:
@@ -110,7 +110,7 @@ After accepting the new key, update `secrets/secrets.nix` with the new host SSH 
 ssh-keyscan <host-ip> 2>/dev/null
 ```
 
-Then re-encrypt secrets: `just rekey`
+Then re-encrypt secrets: `rekey`
 
 ### UEFI vs BIOS Boot Mode
 
@@ -159,8 +159,8 @@ sudo wg show
 
 Verify:
 1. Public keys in `infra.nix` match the encrypted private keys
-2. IP addresses are correct (nodes: `10.21.0.x`, webservers: `10.21.1.x`)
-3. UDP port 51820 is open on firewall (see [`modules/constants.nix`](../modules/constants.nix))
+2. IP addresses are correct (template convention: nodes `10.21.0.x`, webservers `10.21.1.x`)
+3. UDP port 51820 is open on the webserver's firewall (nodes connect outbound; see [`modules/constants.nix`](../modules/constants.nix))
 
 ### WireGuard Peer Fails After Adding Webserver
 
@@ -170,13 +170,13 @@ Order of operations:
 1. Deploy webserver
 2. Create DNS A record pointing to webserver IP
 3. Verify DNS resolution: `dig +short peer.example.com`
-4. Redeploy nodes: `just deploy node01`
+4. Redeploy nodes: `deploy node01`
 
 ### Can't Access Grafana Dashboard
 
 > **Note:** The infra-library runs Grafana on port **9321**, not the default 3000. SSH tunnels and URLs should use 9321. See [`modules/constants.nix`](../modules/constants.nix) for port definitions.
 
-1. **Check if using LIMITED_ACCESS mode**: In `LIMITED_ACCESS` mode (set via `access_DANGER` in `infra.nix`), Grafana is not exposed publicly. The index page hides links to monitoring, addrman-observer, debug logs, and websocket entirely, and `/monitoring/` returns 404. This is intentional — use an SSH tunnel to access Grafana:
+1. **Check if using LIMITED_ACCESS mode**: In `LIMITED_ACCESS` mode (set via `access_DANGER` in `infra.nix`), Grafana is not exposed publicly. The index page hides links to monitoring, playlist, debug logs, addrman snapshots, and websocket entirely, and `/monitoring/` returns 404. This is intentional — use an SSH tunnel to access Grafana:
    ```bash
    ssh -L 9321:localhost:9321 <webserver>
    # Then open http://localhost:9321/monitoring/login
@@ -211,7 +211,7 @@ Order of operations:
    sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
 
    # Linux (systemd-resolved)
-   sudo systemd-resolve --flush-caches
+   sudo resolvectl flush-caches
    ```
 
    Verify the record is live upstream:
@@ -271,7 +271,7 @@ Maximum Payload Violation on connection [12]
 ERROR [extractor] could not publish message: Connection reset by peer
 ```
 
-The infra-library configures NATS with `max_payload = 5242880` (5 MB) to handle large P2P messages. If you see this error, NATS may have been configured separately or the setting was overridden. Check the NATS configuration includes the increased payload limit.
+The infra-library configures NATS with `max_payload = 15728640` (15 MB) to handle large P2P messages. If you see this error, NATS may have been configured separately or the setting was overridden. Check the NATS configuration includes the increased payload limit.
 
 ### RPC Extractor Not Working
 
@@ -298,8 +298,8 @@ The host can't decrypt its secrets.
 
 2. **Re-encrypt secrets**:
    ```bash
-   just rekey
-   # Or manually: cd secrets && agenix -r
+   rekey
+   # Or manually: cd secrets && agenix -r -i ~/.age/key.txt
    ```
 
 ### Can't Edit Secrets Locally
@@ -317,8 +317,17 @@ Your age key isn't listed as a recipient.
 
 2. Re-encrypt:
    ```bash
-   just rekey
+   rekey
    ```
+
+### Lost Age Key
+
+If you lose `~/.age/key.txt`:
+1. Generate a new key: `age-keygen -o ~/.age/key.txt`
+2. Update `secrets.nix` with the new public key
+3. SSH to each host, manually retrieve secrets, re-encrypt
+
+This is why backing up your age key is critical.
 
 ## Checking Service Status
 
@@ -337,6 +346,8 @@ systemctl status nats
 systemctl status peer-observer-ebpf-extractor
 systemctl status peer-observer-rpc-extractor
 systemctl status peer-observer-p2p-extractor
+systemctl status peer-observer-log-extractor
+systemctl status peer-observer-ipc-extractor
 systemctl status peer-observer-tool-metrics
 systemctl status peer-observer-tool-websocket
 

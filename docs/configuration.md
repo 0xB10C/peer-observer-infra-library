@@ -34,18 +34,17 @@ The `bitcoind` block controls the Bitcoin Core instance on each node.
 
 `bitcoind.extraConfig` appends lines to `bitcoin.conf` directly. Use standard `bitcoin.conf` key-value syntax.
 
-`bitcoind.banlistScript` runs a shell script after `bitcoind` starts. The `RPC_BAN_USER` and `RPC_BAN_PW` environment variables are available for making RPC calls:
+`bitcoind.banlistScript` runs a shell script after `bitcoind` starts. Within the script, `bitcoin-cli` is pre-configured with dedicated RPC credentials (also exposed as `RPC_BAN_USER` and `RPC_BAN_PW` for direct RPC calls):
 
 ```nix
 bitcoind.banlistScript = ''
-  bitcoin-cli -rpcuser=$RPC_BAN_USER -rpcpassword=$RPC_BAN_PW \
-    setban 192.168.1.0/24 add 31536000
+  bitcoin-cli setban 192.168.1.0/24 add 31536000
 '';
 ```
 
 ### Network Connectivity
 
-The `bitcoind.net` options enable alternative network transports. Each adds an inbound listener for that transport.
+The `bitcoind.net` options configure alternative network transports.
 
 `bitcoind.net.useTor` enables Tor connectivity and inbound Tor connections.
 
@@ -57,15 +56,15 @@ The `bitcoind.net` options enable alternative network transports. Each adds an i
 
 ### Detailed Logging
 
-`bitcoind.detailedLogging.enable` turns on verbose Bitcoin Core debug log categories (`net`, `mempoolrej`, and others). Logs are rotated daily and compressed. Enabled by default.
+`bitcoind.detailedLogging.enable` turns on verbose Bitcoin Core debug log categories (`net`, `mempoolrej`, and others). The log is rotated hourly and published as one gzip archive per completed day. Enabled by default.
 
-`bitcoind.detailedLogging.logsToKeep` controls how many rotated log files are retained before deletion (maps to logrotate's `rotate` setting). Since logs rotate daily, this is effectively a retention period in days. Defaults to `4`.
+`bitcoind.detailedLogging.logsToKeep` controls how many finalized daily debug.log archives are kept on the server before deletion. Defaults to `4`.
 
 `bitcoind.detailedLogging.printToConsole` mirrors debug logs to the systemd journal. Disabled by default - useful for testing, noisy in production.
 
 ### Observer Integration
 
-These options control which webserver services a node participates in. Enabling `fork-observer.enable` or `addrman-observer.enable` binds the Bitcoin Core RPC port to the WireGuard interface so the webserver can query it. Both default to `true`. See [Security Boundaries](architecture.md#security-boundaries) for details.
+These options control which webserver services a node participates in. Bitcoin Core RPC always stays bound to `127.0.0.1`; the webserver reaches it through the node's nginx proxy listening on the WireGuard interface. Enabling `fork-observer.enable` or `addrman-observer.enable` provisions the RPC credentials and whitelist those services use. Both default to `true`. See [Security Boundaries](architecture.md#security-boundaries) for details.
 
 `peer-observer.addrLookup` enables the address connectivity lookup tool. **Important:** this tool actively connects to IP addresses received via `addr(v2)` messages and may leak the node's IP to the network. Disabled by default.
 
@@ -95,13 +94,9 @@ extraConfig = {
 
 The name is deliberately prominent - this is a security-relevant decision.
 
-### Prometheus
+### Prometheus and Grafana
 
-`prometheus.retention` controls how long scraped metrics are kept. Uses Prometheus duration syntax. Defaults to `30d`. Increase if you need longer historical data for analysis (e.g. `90d`, `1y`).
-
-### Grafana
-
-`grafana.admin_user` sets the Grafana admin username. The password is managed via agenix (see [Secrets Management](secrets.md)).
+Metrics retention (`prometheus.retention`) and the Grafana admin username (`grafana.admin_user`) are documented in the [auto-generated reference](https://peer-observer.github.io/infra-library). The Grafana admin password is managed via agenix (see [Secrets Management](secrets.md)).
 
 ### fork-observer
 
@@ -156,11 +151,11 @@ All available overrides are defined in [`pkgs/bitcoind/default.nix`](https://git
 
 ## WireGuard IP Addressing
 
-The WireGuard VPN ties all hosts together. IP addresses are assigned by convention based on host type and `id`:
+The WireGuard VPN ties all hosts together. The template assigns IP addresses by a convention based on host type and `id`:
 
 | Host type | IP range | Example |
 |---|---|---|
 | Nodes | `10.21.0.x` | `id = 1` → `10.21.0.1` |
 | Webservers | `10.21.1.x` | `id = 1` → `10.21.1.1` |
 
-The `id` field determines the last octet. All IDs and public keys must be unique within each host category. See [Secrets Management](secrets.md) for WireGuard key generation and encryption with agenix.
+This is a template convention, not module behavior: `wireguard.ip` is a free-form string, and `id` is used independently to identify nodes in fork-observer and addrman-observer. All IDs and public keys must be unique within each host category. See [Secrets Management](secrets.md) for WireGuard key generation and encryption with agenix.

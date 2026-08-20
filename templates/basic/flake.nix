@@ -11,6 +11,10 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -19,6 +23,7 @@
       nixpkgs,
       peer-observer-infra-library,
       disko,
+      agenix,
     }:
     let
       infra = import ./infra.nix { inherit nixpkgs peer-observer-infra-library disko; };
@@ -27,6 +32,7 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
+        "aarch64-darwin"
       ];
 
       forSystem =
@@ -44,8 +50,8 @@
 
       nixosConfigurations = (peer-observer-infra-library.lib "x86_64-linux").mkConfigurations infra;
 
-      # a shell with all needed tools
-      # enter with `nix develop`
+      # A shell with all deployment and secret-management tools.
+      # Enter with `nix develop`, then run `infra-help` for available helpers.
       devShells = forAllSystems (
         { pkgs, system, ... }:
         {
@@ -53,43 +59,14 @@
             buildInputs = [
               pkgs.nixos-anywhere
               pkgs.nixos-rebuild-ng
-              pkgs.just
               pkgs.wireguard-tools
               pkgs.age
               pkgs.openssl
-              peer-observer-infra-library.packages.${system}.agenix
+              pkgs.openssh
+              agenix.packages.${system}.agenix
             ];
 
-            shellHook = ''
-              # Shell functions (alternative to justfile recipes)
-              deploy() {
-                local host=$1
-                local target=''${2:-$host}
-                echo "deploying $host (target $target)..."
-                nixos-rebuild-ng switch \
-                --flake .#$host \
-                --target-host $target \
-                --build-host $target \
-                --sudo \
-                --show-trace
-              }
-
-              build-vm() {
-                local host=$1
-                echo "building $host..."
-                nixos-rebuild-ng build-vm \
-                --flake .#$host \
-                --show-trace
-              }
-              export -f deploy
-              export -f build-vm
-
-              echo ""
-              echo "Run 'just' to see available commands, or use these shell functions:"
-              echo "  deploy <host> [target]   - Deploy configuration (target defaults to <host>)"
-              echo "  build-vm <host>          - Build VM for local testing"
-              echo ""
-            '';
+            shellHook = builtins.readFile ./shell-hook.sh;
           };
         }
       );

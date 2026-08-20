@@ -13,7 +13,7 @@ let
   # get these with "ssh-keyscan <ip>" once you installed NixOS on the hosts
   node01 = "ssh-ed25519 AAAAC3N..";
   node02 = "ssh-ed25519 AAAAC3N..";
-  web01 = "ssh-ed25519 AAAAC3Nz..";
+  web01 = "ssh-ed25519 AAAAC3N..";
 in
 {
 
@@ -21,7 +21,7 @@ in
 
   # For each host you'll need to generate and encrypt secrets.
   # Once you have generated a secret, open the file with e.g.
-  # `agenix -e wireguard-private-key-node01.age`
+  # `agenix -e wireguard-private-key-node01.age -i ~/.age/key.txt`
   # and insert, save, and close the file.
   # See the secrets section in https://github.com/peer-observer/infra-library
   # for instructions on how to generate secrets.

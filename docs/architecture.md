@@ -11,7 +11,7 @@ This document describes the peer-observer infrastructure architecture for a typi
 ### Admin Workstation
 
 The admin workstation is where you manage your infrastructure configuration and deployment. It includes:
-- Nix dev shell - provides shell functions (`deploy`, `build-vm`), tools (`agenix`, `nixos-rebuild`, `nixos-anywhere`), and `just` recipes
+- Nix dev shell - provides deployment and secret-management shell functions (`infra-help` lists them), plus `agenix`, `nixos-rebuild` from the `nixos-rebuild-ng` package, and `nixos-anywhere`
 - age keys - for encrypting secrets that nodes can decrypt
 - `nixos-anywhere` - for initial deployment to fresh servers
 - `nixos-rebuild` - for subsequent configuration updates
@@ -26,7 +26,7 @@ Each node is a self-contained monitoring unit running:
 
 Instrumented Bitcoin Core node that connects to the Bitcoin P2P network as a passive observer.
 - Port 8333 (public, mainnet) - accepts inbound connections from the Bitcoin network. Port varies by network: 18333 (test/testnet3), 48333 (testnet4), 38333 (signet), 18444 (regtest)
-- RPC interface bound to `127.0.0.1` by default; additionally bound to the WireGuard interface when fork-observer or addrman-observer need remote RPC access (see [Configuration Concepts](configuration.md))
+- RPC interface bound to `127.0.0.1` only; when fork-observer or addrman-observer need remote RPC access, the webserver queries it through the node's nginx proxy on the WireGuard interface (see [Configuration Concepts](configuration.md))
 - Built with USDT tracepoints enabled for eBPF monitoring
 - Pruned by default (4000 MiB)
 
@@ -39,7 +39,8 @@ Extractors extract events from a Bitcoin Core node and publish them to the conne
 | [eBPF](https://github.com/peer-observer/peer-observer/tree/master/extractors/ebpf) | USDT tracepoints | Low-level events (connections, messages, validation) |
 | [RPC](https://github.com/peer-observer/peer-observer/tree/master/extractors/rpc) | JSON-RPC polling | Chain state, mempool, peer info |
 | [P2P](https://github.com/peer-observer/peer-observer/tree/master/extractors/p2p) | Network tap | Raw P2P message traffic |
-| [Log](https://github.com/peer-observer/peer-observer/tree/master/extractors/log) | Log parsing | Debug log events (disabled by default) |
+| [Log](https://github.com/peer-observer/peer-observer/tree/master/extractors/log) | Log parsing | Debug log events |
+| [IPC](https://github.com/peer-observer/peer-observer/tree/master/extractors/ipc) | Bitcoin Core IPC polling | Data queried over the multiprocess IPC socket |
 
 > **Note**: The eBPF extractor requires Bitcoin Core v29.0 or newer for USDT tracepoint support.
 
@@ -87,8 +88,8 @@ All services bind to localhost and are proxied through nginx. See [Configuration
 #### WireGuard VPN
 
 Encrypted VPN where each node peers with the webserver(s), but nodes do not peer with each other. See [Secrets Management](secrets.md) for WireGuard key setup.
-- Port UDP 51820 (public) - must be reachable for tunnel establishment
-- IP addressing: nodes `10.21.0.x`, webservers `10.21.1.x`
+- Port UDP 51820 (public on webservers only) - nodes dial out to the webserver and need no inbound UDP
+- IP addressing (template convention): nodes `10.21.0.x`, webservers `10.21.1.x`
 - All inter-host communication (Prometheus scraping, RPC for fork-observer/addrman-observer, debug log proxying) runs over this tunnel
 - Serves as the primary security boundary: all node metrics and RPC ports are firewalled to the WireGuard interface only
 
@@ -102,7 +103,7 @@ The infrastructure uses three network zones. No metrics, RPC, or internal servic
 
 **Public (internet-facing):**
 - Port 8333/TCP on nodes - Bitcoin P2P, required for network participation
-- Port 51820/UDP on all hosts - WireGuard tunnel establishment
+- Port 51820/UDP on webservers only - WireGuard tunnel establishment (nodes connect outbound)
 - Ports 80 and 443/TCP on the webserver - nginx reverse proxy with TLS
 
 **WireGuard VPN only (`10.21.x.x`):**

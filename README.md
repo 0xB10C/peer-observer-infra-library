@@ -9,7 +9,7 @@ Nodes are connected to webservers via wireguard.
 
 
 A peer-observer node primarily runs a Bitcoin Core (or Bitcoin Knots, LibreRelay, ...) node.
-From this node, multiple extractors (eBPF, RPC, P2P, debug-log) extract events.
+From this node, multiple extractors (eBPF, RPC, P2P, debug-log, IPC) extract events.
 These events are published into a [NATS](https://nats.io) server running on the host for inter-process communication.
 The peer-observer tools subscribe to these events and process them (generate Prometheus metrics, bridge to websocket, ...).
 
