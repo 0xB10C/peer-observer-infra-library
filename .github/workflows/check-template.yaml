@@ -54,7 +54,7 @@ jobs:
 
       - name: Build host VMs for template nixosConfigurations
         run: |
-          set -ex
+          set -euxo pipefail
           FLAKE_DIR=$(pwd)
 
           DIR=$(mktemp -d)
@@ -70,7 +70,13 @@ jobs:
           git init
           git add .
 
+          # Without pipefail a failing `nix flake show` would leave `hosts` empty
+          # and the loop below would silently check nothing, passing the job.
           hosts=($(nix flake show --json | jq -r '.nixosConfigurations | keys[]'))
+          if [ ${#hosts[@]} -eq 0 ]; then
+            echo "no nixosConfigurations found in the template" >&2
+            exit 1
+          fi
           for host in "${hosts[@]}"
           do
             nix develop --command bash -c "build-vm $host"
