@@ -8,6 +8,7 @@ on:
 
 permissions:
   pages: write
+  # needed by actions/deploy-pages
   id-token: write
 
 jobs:
@@ -23,9 +24,11 @@ jobs:
 
       - name: Install nix
         uses: DeterminateSystems/nix-installer-action@main
-
-      - name: Install magic nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: false
+          extra-conf: |
+            extra-substituters = https://b10c-nixpkgs.cachix.org
+            extra-trusted-public-keys = b10c-nixpkgs.cachix.org-1:okaPyE6H0JAJb4H1J8r7mnf7Gst+0c6Djz7ff3QDGkY=
 
       - name: Configure Pages
         uses: actions/configure-pages@v6

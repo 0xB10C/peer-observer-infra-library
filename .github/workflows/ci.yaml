@@ -22,9 +22,11 @@ jobs:
 
       - name: Install nix
         uses: DeterminateSystems/nix-installer-action@main
-
-      - name: Install magic nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+        with:
+          determinate: false
+          extra-conf: |
+            extra-substituters = https://b10c-nixpkgs.cachix.org
+            extra-trusted-public-keys = b10c-nixpkgs.cachix.org-1:okaPyE6H0JAJb4H1J8r7mnf7Gst+0c6Djz7ff3QDGkY=
 
       - name: Show Nix version
         run: nix --version
@@ -38,16 +40,43 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+    env:
+      # Optional: set this repository secret (and create a matching Cachix cache,
+      # see CACHIX_CACHE below) to also push the packages we build ourselves --
+      # mainly our custom bitcoind -- to a binary cache. Without it, CI still
+      # pulls the b10c-nix packages from b10c-nixpkgs.cachix.org, but rebuilds
+      # bitcoind from source on every run.
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      CACHIX_CACHE: peer-observer
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       - name: Install nix
         uses: DeterminateSystems/nix-installer-action@main
+        with:
+          # We don't use Determinate Nix / FlakeHub. Leaving this on makes the
+          # installer attempt (and fail) a FlakeHub login on every run.
+          determinate: false
+          # The b10c-nix packages (peer-observer, fork-observer, addrman-observer,
+          # samply) are prebuilt and pushed to this cache by
+          # https://github.com/0xb10c/nix. Without it we recompile all of them on
+          # every CI run, which is most of the CI runtime.
+          extra-conf: |
+            extra-substituters = https://b10c-nixpkgs.cachix.org
+            extra-trusted-public-keys = b10c-nixpkgs.cachix.org-1:okaPyE6H0JAJb4H1J8r7mnf7Gst+0c6Djz7ff3QDGkY=
 
-      - name: Install magic nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@main
+      # Our custom bitcoind (pkgs/bitcoind) is only built here, so nobody else can
+      # populate a cache with it. Push it from master and pull it in pull requests.
+      # Skipped when CACHIX_AUTH_TOKEN isn't set, which includes pull requests from
+      # forks, as those don't get repository secrets.
+      - name: Setup cachix
+        if: env.CACHIX_AUTH_TOKEN != ''
+        uses: cachix/cachix-action@v17
+        with:
+          name: ${{ env.CACHIX_CACHE }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          skipPush: ${{ github.event_name == 'pull_request' }}
 
       - name: Show Nix version
         run: nix --version
