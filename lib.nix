@@ -93,6 +93,12 @@ let
   mkBitcoind = pkgs.callPackage ./pkgs/bitcoind/default.nix { };
   mkCustomBitcoind = overrides: mkBitcoind overrides;
 
+  # The constants the modules of this library are built around: ports, nginx
+  # paths, directories, and the hardcoded-but-public credentials. Exposed so
+  # downstream flakes can refer to the same values (e.g. from extraConfig)
+  # instead of duplicating them and drifting apart.
+  constants = import ./modules/constants.nix;
+
 in
 {
 
@@ -101,6 +107,7 @@ in
     mkNodeConfig
     mkWebConfig
     mkCustomBitcoind
+    constants
     ;
 
   mkConfigurations =
