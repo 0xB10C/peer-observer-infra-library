@@ -10,7 +10,7 @@ let
   pkgs = import nixpkgs { inherit system; };
   lib = pkgs.lib;
 
-  CONSTANTS = import ../modules/constants.nix;
+  CONSTANTS = peer-observer-infra-library.constants;
 
   infraConfig = import ./test-infra.nix { inherit system peer-observer-infra-library; };
 
