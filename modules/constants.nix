@@ -132,6 +132,12 @@ rec {
   ADDRMAN_SNAPSHOTS_RPC_AUTH = "05c35f6eea46368799c30528363bb189$b17bd6e3321072ee73cafe6eada7f732f71c9a3e60b35eab9d13fd9b77c62d59";
 
   GRAFANA_PORT = 9321;
+  GRAFANA_IMAGE_RENDERER_PORT = 9322;
+  # Shared secret between Grafana and grafana-image-renderer: Grafana sends it as
+  # the X-Auth-Token header and the renderer rejects requests without it. This
+  # 'secret' is hardcoded and public and that's fine here, as the renderer only
+  # listens on loopback. Both sides must agree on it, hence a single constant.
+  GRAFANA_IMAGE_RENDERER_AUTH_TOKEN = "library-peer-observer-renderer";
 
   # Port for the nginx server that provides limited access to
   # peer-observer tools and data.
