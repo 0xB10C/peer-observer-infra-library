@@ -422,6 +422,23 @@ pkgs.testers.runNixOSTest {
 
       print("all Prometheus remote-node scrape jobs correctly configured!")
 
+    def check_grafana_image_renderer():
+      """Regression test: `services.grafana-image-renderer.settings` is a
+      freeform option that nixpkgs turns into CLI flags verbatim, so an option
+      name that upstream has since renamed still evaluates and still builds, and
+      only fails once the service starts. Checks that the renderer actually
+      comes up."""
+
+      addr = "127.0.0.1:${toString CONSTANTS.GRAFANA_IMAGE_RENDERER_PORT}"
+
+      print("waiting for grafana-image-renderer.service on web1")
+      web1.wait_for_unit("grafana-image-renderer.service")
+      web1.wait_for_open_port(${toString CONSTANTS.GRAFANA_IMAGE_RENDERER_PORT}, timeout=60)
+
+      print("checking the renderer serves on the address we configured")
+      output = web1.succeed(f"curl -sf http://{addr}/healthz")
+      assert_log("OK", output)
+
     def check_addrman_snapshots():
       print("triggering addrman-snapshot.service on node1")
       node1.succeed("systemctl start addrman-snapshot.service")
@@ -605,6 +622,8 @@ pkgs.testers.runNixOSTest {
     check_fork_observer()
 
     check_prometheus_scrape_config()
+
+    check_grafana_image_renderer()
 
     check_debug_log_rotation()
 
