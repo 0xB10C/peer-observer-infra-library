@@ -120,8 +120,19 @@ stdenv.mkDerivation rec {
   # -fno-omit-frame-pointer: Required for accurate stack traces
   # -fno-inline: Prevent function inlining
   # -fno-optimize-sibling-calls: Avoid tail-call elimination
+  #
+  # The C sources only get the first two. The C here is the secp256k1 subtree
+  # (and crypto/ctaes), and secp256k1's field arithmetic is built out of small
+  # static functions that it expects to be inlined, so -fno-inline would cost
+  # real signature verification performance. We'd rather keep the crypto fast
+  # and live with its frames collapsing in profiles.
+  #
+  # CFLAGS is needed at all because the subtree is built as RelWithDebInfo no
+  # matter which CMAKE_BUILD_TYPE we pass (see cmake/secp256k1.cmake), so it
+  # picks up nothing from the C++ side. See issue #138.
   preConfigure = ''
     export CXXFLAGS="$CXXFLAGS -ggdb3 -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls"
+    export CFLAGS="$CFLAGS -ggdb3 -fno-omit-frame-pointer"
   '';
 
   # This is required as the NixOS bitcoind service only supports running
@@ -140,5 +151,66 @@ stdenv.mkDerivation rec {
   versionCheckProgram = "${placeholder "out"}/bin/bitcoin-cli";
   versionCheckProgramArg = "--version";
   doInstallCheck = true;
+
+  # Guards the debug symbols the profiling setup needs (see issue #138). Neither
+  # half of this is checked by anything else: dontStrip is one stdenv change away
+  # from silently going missing, and the C and the C++ flags come from different
+  # places, so it's easy to fix one and leave the other optimized to the point
+  # where profiles are unreadable.
+  postInstallCheck = ''
+    checkDebugSymbols() {
+      local binary sections
+      binary="$(readlink -f "$1")"
+      echo "checking debug symbols in $binary"
+
+      sections="$(readelf -S -W "$binary")"
+      echo "$sections" | grep -q '\.debug_info' || {
+        echo "ERROR: $binary has no .debug_info section"
+        exit 1
+      }
+      echo "$sections" | grep -q '\.symtab' || {
+        echo "ERROR: $binary is stripped (no .symtab section)"
+        exit 1
+      }
+
+      # gcc records the flags each compilation unit was built with in its
+      # DW_AT_producer string, which lives in .debug_str.
+      objcopy --dump-section .debug_str="$TMPDIR/debug_str" "$binary" /dev/null
+      tr '\0' '\n' < "$TMPDIR/debug_str" | grep -a '^GNU C' | sort -u \
+        > "$TMPDIR/producers" || true
+      rm -f "$TMPDIR/debug_str"
+
+      grep -a '^GNU C++' "$TMPDIR/producers" > "$TMPDIR/producers-cxx" || {
+        echo "ERROR: no C++ compilation units found in $binary"
+        exit 1
+      }
+      grep -a '^GNU C[0-9]' "$TMPDIR/producers" > "$TMPDIR/producers-c" || {
+        echo "ERROR: no C compilation units found in $binary"
+        exit 1
+      }
+
+      assertProducerFlags() {
+        local language="$1"
+        shift
+        local total flag with
+        total="$(wc -l < "$TMPDIR/producers-$language")"
+        for flag in "$@"; do
+          with="$(grep -c -- "$flag" "$TMPDIR/producers-$language" || true)"
+          if [ "$with" != "$total" ]; then
+            echo "ERROR: $flag missing from $((total - with))/$total $language compilation units"
+            exit 1
+          fi
+          echo "ok: $flag in all $total $language compilation units"
+        done
+      }
+
+      assertProducerFlags cxx \
+        -fno-omit-frame-pointer -fno-inline -fno-optimize-sibling-calls
+      # The C sources keep inlining and tail calls on purpose, see preConfigure.
+      assertProducerFlags c -fno-omit-frame-pointer
+    }
+
+    checkDebugSymbols "$out/bin/bitcoind"
+  '';
 
 }
