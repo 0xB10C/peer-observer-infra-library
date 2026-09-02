@@ -518,6 +518,55 @@ pkgs.testers.runNixOSTest {
       print(f"{command}: {output}")
       assert_log("HTTP/1.1 200 OK", output)
 
+
+    def check_peerinfo_snapshots():
+      print("triggering peerinfo-snapshot.service on node1")
+      node1.succeed("systemctl start peerinfo-snapshot.service")
+
+      print("checking that a snapshot file was created in ${CONSTANTS.PEERINFO_SNAPSHOTS_DIR}")
+      output = node1.succeed("ls ${CONSTANTS.PEERINFO_SNAPSHOTS_DIR}/peerinfo-*.json.zst")
+      print(f"snapshot files: {output}")
+
+      # wait_until_nodes_connected() ran before this check, so node1 has at
+      # least one peer and getpeerinfo can't be an empty array.
+      print("checking snapshot decompresses to a non-empty getpeerinfo JSON array")
+      output = node1.succeed(
+        "${pkgs.zstd}/bin/zstd -d -c $(ls ${CONSTANTS.PEERINFO_SNAPSHOTS_DIR}/peerinfo-*.json.zst | head -1)"
+      )
+      assert_log('"subver"', output)
+      assert_log('"conntime"', output)
+      assert_log('"inbound"', output)
+
+      print("checking webserver can fetch a getpeerinfo snapshot from node1 via wireguard")
+      snapshot_name = node1.succeed(
+        "ls ${CONSTANTS.PEERINFO_SNAPSHOTS_DIR}/peerinfo-*.json.zst | head -1 | xargs basename"
+      ).strip()
+      command = f"curl -s -I ${infraConfig.nodes.node1.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERINFO_SNAPSHOTS}{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
+      print("checking the FULL_ACCESS frontend serves the peerinfo-snapshots index page")
+      # without trailing slash
+      command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/peerinfo-snapshots"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("302 Found", output)
+
+      # with trailing slash, the index page lists the nodes with snapshots
+      command = "curl 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/peerinfo-snapshots/"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("peer-observer getpeerinfo snapshots", output)
+      assert_log("/peerinfo-snapshots/node1/", output)
+      assert_log("/peerinfo-snapshots/node2/", output)
+
+      print("checking the FULL_ACCESS frontend proxies a snapshot from node1")
+      command = f"curl -s -I 127.0.0.1:${toString CONSTANTS.NGINX_INTERNAL_FULL_ACCESS_PORT}/peerinfo-snapshots/node1/{snapshot_name}"
+      output = web1.succeed(command)
+      print(f"{command}: {output}")
+      assert_log("HTTP/1.1 200 OK", output)
+
     def check_sanitizer_suppressions():
       print("checking sanitizer env vars are set on node1 bitcoind (sanitizersAddressUndefined=true)")
       output = node1.succeed("systemctl show bitcoind-mainnet.service --property=Environment")
@@ -614,6 +663,8 @@ pkgs.testers.runNixOSTest {
     check_addrman_snapshots()
 
     check_peers_dat_snapshots()
+
+    check_peerinfo_snapshots()
 
     check_bitcoind_rpc_connectivity()
 

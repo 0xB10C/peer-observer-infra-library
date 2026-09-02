@@ -8,6 +8,7 @@ rec {
   NODE_TO_WEBSERVER_PATH_DEBUG_LOGS = "/debug-logs/";
   NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS = "/addrman-snapshots/";
   NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS = "/peers-dat-snapshots/";
+  NODE_TO_WEBSERVER_PATH_PEERINFO_SNAPSHOTS = "/peerinfo-snapshots/";
   NODE_TO_WEBSERVER_PATH_PROFILING = "/samply-profiling/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS = "/peer-observer-rpc-extractor-metrics/";
   NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS = "/peer-observer-ipc-extractor-metrics/";
@@ -24,6 +25,7 @@ rec {
     NODE_TO_WEBSERVER_PATH_DEBUG_LOGS
     NODE_TO_WEBSERVER_PATH_ADDRMAN_SNAPSHOTS
     NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS
+    NODE_TO_WEBSERVER_PATH_PEERINFO_SNAPSHOTS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_RPC_EXTRACTOR_METRICS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_IPC_EXTRACTOR_METRICS
     NODE_TO_WEBSERVER_PATH_PEER_OBSERVER_METRICS_TOOL
@@ -81,6 +83,9 @@ rec {
   # Place where peers.dat snapshots are stored
   PEERS_DAT_SNAPSHOTS_DIR = "/data/peers-dat-snapshots";
 
+  # Place where getpeerinfo snapshots are stored
+  PEERINFO_SNAPSHOTS_DIR = "/data/peerinfo-snapshots";
+
   # A UDP port exposed by the web hosts for nodes to connect to them.
   WIREGUARD_INTERFACE_PORT = 51820;
   # Namse of the wireguard interface that connects the nodes to the web hosts.
@@ -130,6 +135,12 @@ rec {
   # The RPC interface is only reachable via the wireguard interface.
   ADDRMAN_SNAPSHOTS_RPC_PASSWORD = "rOojUZh_XymjIuASxRWNV8lBD3udjhTEKWwwpGeE1h0";
   ADDRMAN_SNAPSHOTS_RPC_AUTH = "05c35f6eea46368799c30528363bb189$b17bd6e3321072ee73cafe6eada7f732f71c9a3e60b35eab9d13fd9b77c62d59";
+
+  # This 'password' is hardcoded and public and that's fine here, as
+  # the password is not meant to secure the RPC interface.
+  # The RPC interface is only reachable via the wireguard interface.
+  PEERINFO_SNAPSHOTS_RPC_PASSWORD = "nvpLLsJQmJLd_jCN88AGLpxD0dWvGoUYfETGG_L6mPs";
+  PEERINFO_SNAPSHOTS_RPC_AUTH = "6c005377db491496ea7e5449b36e422a$4d9f3a297ea6e86b2d3182d1cbfd9aea5ccc52162468b24f9e516f673372bcfb";
 
   GRAFANA_PORT = 9321;
   GRAFANA_IMAGE_RENDERER_PORT = 9322;
