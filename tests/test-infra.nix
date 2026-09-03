@@ -70,6 +70,10 @@ in
           enable = true;
           snapshotsToKeep = 4;
         };
+        peerinfoSnapshots = {
+          enable = true;
+          daysToKeep = 7;
+        };
         banlistScript = ''
           bitcoin-cli setban 162.218.65.0/24    add 31536000  # LinkingLion
           bitcoin-cli setban 209.222.252.0/24   add 31536000  # LinkingLion
@@ -124,6 +128,10 @@ in
         peersDatSnapshots = {
           enable = true;
           snapshotsToKeep = 4;
+        };
+        peerinfoSnapshots = {
+          enable = true;
+          daysToKeep = 7;
         };
         extraConfig = ''
           addnode=node1:18444

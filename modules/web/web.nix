@@ -26,6 +26,9 @@ let
   # Combined overview page for both getrawaddrman and peers.dat snapshots.
   addrmanSnapshotsPage = (pkgs.callPackage ./addrman-snapshots.html.nix) { inherit config; };
 
+  # Overview page for the getpeerinfo snapshots.
+  peerinfoSnapshotsPage = (pkgs.callPackage ./peerinfo-snapshots.html.nix) { inherit config; };
+
   mkForkObserverNode = name: host: {
     inherit (host) id description;
     inherit name;
@@ -79,6 +82,16 @@ let
     name: host:
     (lib.nameValuePair ("/peers-dat-snapshots/${name}/") ({
       proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERS_DAT_SNAPSHOTS}";
+      extraConfig = ''
+        limit_rate 500k; # kB/s
+      '';
+    }));
+
+  # Only nodes with getpeerinfo snapshots enabled expose the snapshots endpoint.
+  mkPeerinfoSnapshotsLocation =
+    name: host:
+    (lib.nameValuePair ("/peerinfo-snapshots/${name}/") ({
+      proxyPass = "http://${host.wireguard.ip}:${toString CONSTANTS.NODE_TO_WEBSERVER_PORT}${CONSTANTS.NODE_TO_WEBSERVER_PATH_PEERINFO_SNAPSHOTS}";
       extraConfig = ''
         limit_rate 500k; # kB/s
       '';
@@ -339,6 +352,19 @@ in
               '';
             };
 
+            "/peerinfo-snapshots" = {
+              extraConfig = "rewrite /peerinfo-snapshots /peerinfo-snapshots/ redirect;";
+            };
+            "/peerinfo-snapshots/" = {
+              root = "${peerinfoSnapshotsPage}";
+              index = "index.html";
+              tryFiles = "$uri $uri/index.html $uri/ =404";
+              extraConfig = ''
+                default_type text/html;
+                rewrite /peerinfo-snapshots/(.*) /$1  break;
+              '';
+            };
+
             "/websocket" = {
               extraConfig = "rewrite /websocket /websocket/ redirect;";
             };
@@ -365,6 +391,9 @@ in
           ))
           // (lib.mapAttrs' mkPeersDatSnapshotsLocation (
             lib.filterAttrs (name: host: host.bitcoind.peersDatSnapshots.enable) config.infra.nodes
+          ))
+          // (lib.mapAttrs' mkPeerinfoSnapshotsLocation (
+            lib.filterAttrs (name: host: host.bitcoind.peerinfoSnapshots.enable) config.infra.nodes
           ));
         };
 
