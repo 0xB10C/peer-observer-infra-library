@@ -11,6 +11,10 @@
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -19,6 +23,7 @@
       nixpkgs,
       peer-observer-infra-library,
       disko,
+      agenix,
     }:
     let
       infra = import ./infra.nix { inherit nixpkgs peer-observer-infra-library disko; };
@@ -27,6 +32,7 @@
       supportedSystems = [
         "x86_64-linux"
         "aarch64-linux"
+        "aarch64-darwin"
       ];
 
       forSystem =
@@ -44,42 +50,23 @@
 
       nixosConfigurations = (peer-observer-infra-library.lib "x86_64-linux").mkConfigurations infra;
 
-      # a shell with all needed tools
-      # enter with `nix develop`
+      # A shell with all deployment and secret-management tools.
+      # Enter with `nix develop`, then run `infra-help` for available helpers.
       devShells = forAllSystems (
         { pkgs, system, ... }:
         {
           default = pkgs.mkShell {
             buildInputs = [
               pkgs.nixos-anywhere
-              pkgs.nixos-rebuild
-              peer-observer-infra-library.packages.${system}.agenix
+              pkgs.nixos-rebuild-ng
+              pkgs.wireguard-tools
+              pkgs.age
+              pkgs.openssl
+              pkgs.openssh
+              agenix.packages.${system}.agenix
             ];
 
-            shellHook = ''
-              deploy() {
-                local host=$1
-                echo "deploying $host..."
-                nixos-rebuild switch \
-                --flake .#$host \
-                --target-host $host \
-                --build-host $host \
-                --sudo \
-                --show-trace
-              }
-
-              build-vm() {
-                local host=$1
-                echo "building $host..."
-                nixos-rebuild build-vm \
-                --flake .#$host \
-                --show-trace
-              }
-              export -f build-vm
-
-              echo "use 'deploy <host> to deploy a host'"
-              echo "use 'build-vm <host> to build a vm of a host (useful when testing)'"
-            '';
+            shellHook = builtins.readFile ./shell-hook.sh;
           };
         }
       );

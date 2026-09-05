@@ -63,7 +63,7 @@
 
           # docs for the modules/infra.nix module
           docs = pkgs.callPackage ./pkgs/docs/default.nix {
-            github_url = "https://github.com/0xB10C/peer-observer-infra-library/tree/master/";
+            github_url = "https://github.com/peer-observer/infra-library/tree/master/";
           };
         }
       );

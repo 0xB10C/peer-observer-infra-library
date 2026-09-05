@@ -100,7 +100,7 @@ in
         }
       ];
 
-      # Enable SSH, but disable root login and password authentification.
+      # Enable SSH, but disable root login and password authentication.
       services.openssh = {
         enable = true;
         settings.PermitRootLogin = "no";
@@ -137,6 +137,10 @@ in
         };
       };
 
+      # Explicitly default to UTC (NixOS default is UTC when unset,
+      # but we set it here to be explicit).
+      time.timeZone = "UTC";
+
       # Clean the files in `/tmp` during boot.
       boot.tmp.cleanOnBoot = true;
       # Compressed tmp files and SWAP.
@@ -155,7 +159,7 @@ in
       networking.wireguard.interfaces.${CONSTANTS.WIREGUARD_INTERFACE_NAME} = {
         ips = [ "${config.peer-observer.base.wireguard.ip}/32" ];
         privateKeyFile = config.age.secrets.wireguard-private-key.path;
-        # peers are set up in node.nix and web.nix respectivly
+        # peers are set up in node.nix and web.nix respectively
       };
 
       # Prometheus exporters

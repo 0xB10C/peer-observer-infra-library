@@ -1,0 +1,248 @@
+# Quick Start Guide
+
+This guide walks you through deploying peer-observer infrastructure from scratch.
+
+## What You Can Deploy
+
+| Scenario | What You Get |
+|----------|--------------|
+| **Node(s) only** | Data collection, Prometheus metrics endpoint, WebSocket API. Add a webserver later if needed. |
+| **Node(s) + webserver** | Full deployment with Grafana dashboards, fork-observer, addrman-observer. The typical setup. |
+
+This guide covers both scenarios. Skip the webserver sections if you only need nodes.
+
+## Prerequisites
+
+- **Nix** with flakes enabled
+  ```bash
+  # Add to ~/.config/nix/nix.conf or /etc/nix/nix.conf:
+  experimental-features = nix-command flakes
+  ```
+- Root SSH access to target servers
+
+The dev shell (`nix develop`) provides all other required tools: `age`, `wireguard-tools`, `agenix`, `nixos-anywhere`, and `nixos-rebuild` from the `nixos-rebuild-ng` package. It also defines the deployment and secret-management helpers listed by `infra-help`.
+
+The template supports dev shells on `x86_64-linux`, `aarch64-linux`, and `aarch64-darwin`. Its NixOS hosts are built for `x86_64-linux`, so building a test VM from macOS requires a compatible Linux builder. Deployment builds on the target host by default.
+
+### Recommended Server Specs
+
+| Component | Specs |
+|-----------|-------|
+| Node (pruned) | 4 CPU, 8GB RAM, 100GB disk |
+| Node (full) | 4 CPU, 8GB RAM, 2TB SSD |
+| Webserver | 2–4 CPU, 4GB RAM, 50GB disk |
+
+Smaller instances may work for testing or low-traffic deployments.
+
+### What to Expect
+
+Run the commands below from your local machine (not on the servers), unless stated otherwise. Step 4 uses `nixos-anywhere` to install a fresh NixOS image, and Step 6 uses `nixos-rebuild` to deploy the configured services over SSH. Anything previously on the target server is wiped in Step 4.
+
+- **Steps 1-3** describe the infrastructure in your flake (no remote changes yet).
+- **Step 4** installs NixOS on the remote servers. This is destructive, so back up anything you care about.
+- **Step 5** generates WireGuard keys and Grafana secrets locally.
+- **Step 6** deploys peer-observer services to the now-NixOS servers.
+
+## Step 1: Initialize Your Repository
+
+```bash
+mkdir my-peer-observer && cd my-peer-observer
+nix flake init --template github:peer-observer/infra-library
+git init && git add .
+nix develop  # Enter dev shell
+```
+
+This gives you:
+```text
+.
+├── flake.nix          # Nix flake definition
+├── infra.nix          # Your infrastructure configuration
+├── shell-hook.sh      # Dev-shell deployment and secret helpers
+├── hosts/             # Empty. Per-host disko/hardware configs land here in Step 3
+└── secrets/
+    ├── secrets.nix    # Agenix encryption recipients
+    └── .gitignore
+```
+
+## Step 2: Configure Your Infrastructure
+
+Edit `infra.nix` and address the `FIXME` comments. The file is well-documented with inline instructions. Key items to configure:
+
+**Global settings:**
+- `admin.username` — your SSH login username
+- `admin.sshPubKeys` — your SSH public key(s)
+- `system.stateVersion` — set to the [most recent NixOS version](https://nixos.org/manual/nixos/stable/options.html#opt-system.stateVersion) (e.g., `"25.11"`)
+
+**Per-node settings:**
+- `wireguard.pubkey` — fill in after Step 5 (secrets)
+- `extraModules` — uncomment the disko and hardware-configuration lines, update paths
+- `bitcoind` — configure chain, pruning, etc.
+
+**Webserver settings (optional — skip if you only need nodes):**
+- `domain` — public domain name that resolves to this server
+- `grafana.admin_user` — Grafana admin username
+- `security.acme` — accept terms and set email for HTTPS certificates
+
+> **Note**: All hosts start with `setup = true`. This enables initial deployment without secrets — services that require secrets (WireGuard, etc.) are skipped. You'll set `setup = false` in Step 6 after secrets are configured.
+
+See the [Configuration Concepts](configuration.md) and the [auto-generated options reference](https://peer-observer.github.io/infra-library/) for full details.
+
+## Step 3: Set Up Disk Partitioning
+
+Drop a generic [disko.nix](https://github.com/peer-observer/infra-demo/blob/master/hosts/hal/disko.nix) (BIOS/UEFI auto-detect) into a per-host directory under `hosts/`. `curl --create-dirs` creates the target directory if it doesn't exist:
+
+```bash
+curl --create-dirs -o hosts/node01/disko.nix https://raw.githubusercontent.com/peer-observer/infra-demo/refs/heads/master/hosts/hal/disko.nix
+curl --create-dirs -o hosts/web01/disko.nix https://raw.githubusercontent.com/peer-observer/infra-demo/refs/heads/master/hosts/hal/disko.nix  # if deploying a webserver
+```
+
+Then change the `id` in the `let` bindings at the top of each `disko.nix` to match the target server's disk identifier. Run `lsblk -o NAME,SIZE,TYPE,ID-LINK -d` on the target server and use the `ID-LINK` value (e.g., `scsi-0QEMU_QEMU_HARDDISK_...`).
+
+## Step 4: Initial Deployment
+
+> **Important**: Nix flakes require all referenced files to be tracked by git. Before deploying, ensure your configuration files are added:
+> ```bash
+> git add infra.nix hosts/
+> ```
+
+> **Tip**: Open an extra SSH session to the server before running this command. If something goes wrong, you'll still have access. See [Troubleshooting](troubleshooting.md) for recovery options.
+
+> **Warning**: This WIPES the target disk!
+
+From the dev shell:
+```bash
+initial-deploy node01 root@<server-ip>
+```
+
+The helper asks you to type `yes` before proceeding, since it wipes the target disk. It's interactive by design; use the direct command below if you need to script it.
+
+Equivalent direct command:
+```bash
+nix run github:nix-community/nixos-anywhere -- \
+  --generate-hardware-config nixos-generate-config ./hosts/node01/hardware-configuration.nix \
+  --flake .#node01 \
+  --target-host root@<server-ip> \
+  --build-on remote
+```
+
+The server will reboot. You can then SSH as your admin user:
+```bash
+ssh node01  # or ssh <username>@<server-ip>
+```
+
+> **Tip**: Configure `~/.ssh/config` with your server names. This lets you `ssh node01` instead of `ssh <user>@<ip>`, and lets the deploy commands in Step 6 and Ongoing Maintenance use the short form (`deploy node01`).
+
+Repeat for each host (web01 if deploying a webserver).
+
+## Step 5: Configure Secrets
+
+See [Secrets Management](secrets.md) for detailed instructions on how secrets work. The dev-shell helpers automate most of the process:
+
+```bash
+# 1. Generate your age key (one-time)
+mkdir -p ~/.age
+age-keygen -o ~/.age/key.txt
+# Note the public key (starts with "age1...")
+
+# 2. Get host SSH keys and update secrets/secrets.nix
+get-host-key <node01-ip>
+
+# 3. Generate and encrypt secrets
+gen-wg-key node01
+gen-wg-key web01            # if deploying a webserver
+gen-grafana-password web01  # if deploying a webserver
+
+# 4. Update infra.nix with WireGuard public keys (output from step 3)
+```
+
+## Step 6: Full Deployment
+
+1. Set `setup = false` for all hosts in `infra.nix` — this enables WireGuard VPN and all services that require secrets
+2. Track the new secrets and config changes in git:
+   ```bash
+   git add infra.nix secrets/*.age
+   ```
+3. Deploy:
+
+From the dev shell:
+```bash
+deploy node01
+deploy web01   # if deploying a webserver
+
+# Pass an explicit SSH target as a second argument when needed:
+# deploy node01 alice@192.0.2.10
+```
+
+The `deploy` helper takes `host` (the flake output name from `infra.nix`) and an optional `target` (the SSH destination, defaulting to `host`) - pass an explicit target when the host name doesn't resolve via `~/.ssh/config` or the alias differs from the flake output name.
+
+Equivalent direct commands:
+```bash
+nixos-rebuild switch --flake .#node01 --target-host node01 --build-host node01 --sudo
+nixos-rebuild switch --flake .#web01 --target-host web01 --build-host web01 --sudo   # if deploying a webserver
+```
+
+Replace `node01` / `web01` after `--target-host` and `--build-host` with `<user>@<server-ip>` if you don't have an SSH config alias.
+
+> **Note**: The dev shell's `nixos-rebuild` command comes from the `nixos-rebuild-ng` package. We use this implementation because the original `nixos-rebuild` is known to be problematic on some platforms (e.g. macOS).
+
+## What's Running
+
+After deployment, each **node** runs:
+- Bitcoin Core with USDT tracepoints
+- peer-observer extractors (eBPF, RPC, P2P, log, IPC)
+- NATS message broker
+- Prometheus metrics exporter (over WireGuard)
+- WebSocket API (over WireGuard)
+- nginx (serves compressed metrics and debug logs over WireGuard)
+
+If you deployed a **webserver**, it runs:
+- Grafana dashboards
+- Prometheus (scrapes all nodes)
+- fork-observer
+- addrman-observer
+- nginx with Let's Encrypt
+
+Check service status:
+```bash
+ssh node01
+systemctl status bitcoind-mainnet
+systemctl status peer-observer-ebpf-extractor
+journalctl -u bitcoind-mainnet -f
+```
+
+## Ongoing Maintenance
+
+```bash
+# Update flake inputs (pulls latest peer-observer, nixpkgs, etc.)
+nix flake update
+```
+
+From the dev shell:
+```bash
+deploy node01
+deploy web01
+rekey  # Re-encrypt secrets after changing keys in secrets.nix
+```
+
+Run `infra-help` to see all available dev-shell helpers, or see Step 6 for the equivalent direct commands.
+
+### Alternative Deployment Method
+
+If the native `nixos-rebuild --target-host` approach fails (network issues, SSH configuration problems, or remote builds timing out), you can copy your configuration to the host and build locally:
+
+```bash
+# 1. Copy configuration to the host
+rsync -avz --delete --exclude='.git' . node01:/tmp/nixos-config/
+
+# 2. SSH in and rebuild locally
+ssh node01 "cd /tmp/nixos-config && sudo nixos-rebuild switch --flake .#node01"
+```
+
+This avoids any client-side build, which is helpful when `--build-host` remote builds time out or when SSH connectivity from the deploying host is flaky.
+
+## Next Steps
+
+- [Configuration Concepts](configuration.md) - Conceptual overview of `infra.nix`
+- [Configuration Options Reference](https://peer-observer.github.io/infra-library/) - Auto-generated, always up to date
+- [Secrets Management](secrets.md) - Understanding keys and encryption
+- [Troubleshooting](troubleshooting.md) - Common issues

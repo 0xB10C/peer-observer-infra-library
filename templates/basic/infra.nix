@@ -27,20 +27,19 @@ in
   # - the peer-observer frontend tools (websocket, ...)
   # - a fork-observer instance connected to all nodes
   # - an addrman-observer instance connected to all nodes
-  # - .. TODO:
   #
   # The configuration options are documented in
-  # https://0xb10c.github.io/peer-observer-infra-library/#_infra_agenixsecretsdir
+  # https://peer-observer.github.io/infra-library
   #
   # However, this is NixOS and you can pretty much override everything.
-  # To do this, use the (global, per-hoost) extraConfig arguements below.
+  # To do this, use the (global, per-host) extraConfig arguments below.
   #
   # Keep in mind that you are responsible for securing your servers yourself.
   # You might want to apply additional hardening.
 
   # NOTE: by default, all hosts defined here are set to `setup = true;`.
-  # This enables easier and faster initial set up. Once you provisined the
-  # secrets for a node (see README), feel free to set `setup = false;` and
+  # This enables easier and faster initial set up. Once you provisioned the
+  # secrets for a node (see docs/secrets.md), feel free to set `setup = false;` and
   # redeploy the node.
 
   # Global configuration options that are applied to all hosts (nodes and webservers).
@@ -77,7 +76,7 @@ in
         # feel free to use a different IP range here.
         ip = "10.21.0.1";
         # FIXME:
-        # See the section on secrets on how to fill this in
+        # See docs/secrets.md on how to fill this in
         pubkey = "fakekH7xb/DdO...";
       };
       # FIXME:
@@ -91,7 +90,7 @@ in
       # Feel free to set this to whatever you like. Note that this might be shown
       # publicly.
       description = ''
-        This is a placeholder description for node01. HTML is <b>supported<b>.
+        This is a placeholder description for node01. HTML is <b>supported</b>.
       '';
       # Bitcoin node configuration
       bitcoind = {
@@ -126,7 +125,7 @@ in
       setup = true;
       arch = "x86_64-linux";
       description = ''
-        This is a placeholder description for node02. HTML is <b>supported<b>.
+        This is a placeholder description for node02. HTML is <b>supported</b>.
       '';
 
       bitcoind = {
@@ -134,7 +133,7 @@ in
         # Here, we configure a custom bitcoind package to run on this node.
         # You can, for example, change the commit, branch, and repository
         # to run.
-        # See https://github.com/0xB10C/peer-observer-infra-library/blob/master/pkgs/bitcoind/default.nix
+        # See https://github.com/peer-observer/infra-library/blob/master/pkgs/bitcoind/default.nix
         package = customBitcoind {
           system = "x86_64-linux";
           overrides = {
@@ -208,10 +207,10 @@ in
         grafana.admin_user = "placeholder-user-1234";
 
         # By default, access to the frontend is limited.
-        # This means, the IP address of the honeypot nodes shoudn't
+        # This means, the IP address of the honeypot nodes shouldn't
         # leak via the frontend. This can be changed (see documentation),
         # but don't do this in a "production" setup. In a production setup,
-        # you should put the frontend behind authentification BEFORE turning
+        # you should put the frontend behind authentication BEFORE turning
         # on full access.
         access_DANGER = "LIMITED_ACCESS";
 
@@ -233,9 +232,7 @@ in
           # terms and set a value here.
           security.acme.acceptTerms = false; # FIXME:
           security.acme.defaults.email = null; # FIXME:
-        };
 
-        extraConfig = {
           # Extra configuration that should be applied to (only) this host goes here.
         };
         extraModules = [

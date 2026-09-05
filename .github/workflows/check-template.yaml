@@ -79,6 +79,11 @@ jobs:
           fi
           for host in "${hosts[@]}"
           do
-            nix develop --command bash -c "build-vm $host"
+            nix develop --command bash -c '
+              set -e
+              type infra-help deploy build-vm initial-deploy get-host-key gen-wg-key gen-grafana-password rekey view-secret
+              infra-help
+              build-vm "$1"
+            ' bash "$host"
           done
       - run: df -h
